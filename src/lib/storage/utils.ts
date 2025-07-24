@@ -16,6 +16,51 @@ export function generateId(): string {
 }
 
 /**
+ * Categorize quarters based on month (Jun=Q1, Sep=Q2, Dec=Q3, Mar=Q4)
+ */
+export function categorizeQuarter(monthYear: string): string {
+  const monthMap: Record<string, string> = {
+    'Jun': 'Q1',
+    'Sep': 'Q2', 
+    'Dec': 'Q3',
+    'Mar': 'Q4'
+  };
+
+  // Extract month from various formats like "Jun-2024", "Jun 2024", "2024-Jun", etc.
+  const monthMatch = monthYear.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+  if (!monthMatch) {
+    return monthYear; // Return original if no month found
+  }
+
+  const month = monthMatch[1];
+  const quarter = monthMap[month];
+  
+  if (!quarter) {
+    return monthYear; // Return original if month not in our mapping
+  }
+
+  // Extract year
+  const yearMatch = monthYear.match(/(\d{4})/);
+  const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+
+  return `${quarter}-${year}`;
+}
+
+/**
+ * Normalize quarter keys in financial data
+ */
+export function normalizeQuarterKeys(quarters: Record<string, QuarterData>): Record<string, QuarterData> {
+  const normalizedQuarters: Record<string, QuarterData> = {};
+  
+  for (const [key, data] of Object.entries(quarters)) {
+    const normalizedKey = categorizeQuarter(key);
+    normalizedQuarters[normalizedKey] = data;
+  }
+  
+  return normalizedQuarters;
+}
+
+/**
  * Validate quarter data structure
  */
 export function validateQuarterData(quarters: Record<string, any>): ValidationResult<Record<string, QuarterData>> {
@@ -152,7 +197,8 @@ function validateCompanyData(company: any): ValidationResult<Omit<CompanyFinanci
       errors.push(...quartersValidation.errors);
     } else {
       if (validatedCompany.financials) {
-        validatedCompany.financials.quarters = quartersValidation.data;
+        // Normalize quarter keys (Jun=Q1, Sep=Q2, Dec=Q3, Mar=Q4)
+        validatedCompany.financials.quarters = normalizeQuarterKeys(quartersValidation.data!);
       }
     }
   }
