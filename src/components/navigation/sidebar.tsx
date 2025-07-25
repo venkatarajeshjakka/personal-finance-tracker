@@ -14,6 +14,7 @@ import {
   ChevronRight,
   TrendingUp,
   Wallet,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -28,6 +29,12 @@ const navigation = [
     href: "/dashboard",
     icon: LayoutDashboard,
     description: "Overview and insights",
+  },
+  {
+    name: "Import Data",
+    href: "/import",
+    icon: Upload,
+    description: "Import company data",
   },
   {
     name: "Watchlists",

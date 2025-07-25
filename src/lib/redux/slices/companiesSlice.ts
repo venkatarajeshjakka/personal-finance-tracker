@@ -6,15 +6,25 @@ import { StorageService } from '@/lib/storage';
 export const loadCompanies = createAsyncThunk(
   'companies/loadCompanies',
   async () => {
-    return StorageService.getAllCompanies();
+    const companies = StorageService.getAllCompanies();
+    // Ensure dates are properly handled
+    return companies.map(company => ({
+      ...company,
+      createdAt: typeof company.createdAt === 'string' ? new Date(company.createdAt) : company.createdAt,
+      updatedAt: typeof company.updatedAt === 'string' ? new Date(company.updatedAt) : company.updatedAt
+    }));
   }
 );
 
 export const saveCompany = createAsyncThunk(
   'companies/saveCompany',
   async (company: CompanyFinancials) => {
-    StorageService.saveCompany(company);
-    return company;
+    const companyToSave = {
+      ...company,
+      updatedAt: new Date()
+    };
+    StorageService.saveCompany(companyToSave);
+    return companyToSave;
   }
 );
 
@@ -28,12 +38,18 @@ export const deleteCompany = createAsyncThunk(
 
 export const importCompanyData = createAsyncThunk(
   'companies/importCompanyData',
-  async (jsonData: string, { rejectWithValue }) => {
-    const result = StorageService.importCompanyData(jsonData);
-    if (!result.isValid) {
-      return rejectWithValue(result.errors.join(', '));
+  async (company: CompanyFinancials, { rejectWithValue }) => {
+    try {
+      const companyToSave = {
+        ...company,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      StorageService.saveCompany(companyToSave);
+      return companyToSave;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to import company');
     }
-    return result.data!;
   }
 );
 
@@ -120,21 +136,16 @@ const companiesSlice = createSlice({
       })
       .addCase(importCompanyData.fulfilled, (state, action) => {
         state.loading = false;
-        // Merge imported companies with existing ones
-        const existingIds = new Set(state.data.map(c => c.id));
-        const newCompanies = action.payload.filter(c => !existingIds.has(c.id));
-        const updatedCompanies = action.payload.filter(c => existingIds.has(c.id));
+        const company = action.payload;
+        const existingIndex = state.data.findIndex(c => c.id === company.id);
         
-        // Update existing companies
-        updatedCompanies.forEach(updatedCompany => {
-          const index = state.data.findIndex(c => c.id === updatedCompany.id);
-          if (index !== -1) {
-            state.data[index] = updatedCompany;
-          }
-        });
-        
-        // Add new companies
-        state.data.push(...newCompanies);
+        if (existingIndex !== -1) {
+          // Update existing company
+          state.data[existingIndex] = company;
+        } else {
+          // Add new company
+          state.data.push(company);
+        }
       })
       .addCase(importCompanyData.rejected, (state, action) => {
         state.loading = false;

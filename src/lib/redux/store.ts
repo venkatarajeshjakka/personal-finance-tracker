@@ -33,6 +33,16 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
+        // Ignore all serializable checks for Date objects
+        isSerializable: (value: any) => {
+          // Allow Date objects to pass through
+          if (value instanceof Date) {
+            return true;
+          }
+          // Use default serializable check for other values
+          return typeof value !== 'object' || value === null || Array.isArray(value) || 
+                 Object.prototype.toString.call(value) === '[object Object]';
+        },
         ignoredActions: [
           'persist/PERSIST',
           'persist/REHYDRATE',
