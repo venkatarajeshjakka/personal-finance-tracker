@@ -106,6 +106,7 @@ export interface CompaniesState {
   error: string | null;
   selectedQuarter: string;
   selectedYear: number;
+  duplicates: { [key: string]: CompanyFinancials[] };
 }
 
 export interface PortfoliosState {

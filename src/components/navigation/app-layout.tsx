@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 import { Footer } from "./footer";

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { CompanyFinancials, CompaniesState, ValidationResult } from '@/types';
+import { CompanyFinancials, CompaniesState } from '@/types';
 import { StorageService } from '@/lib/storage';
 
 // Async thunks for company operations
@@ -36,6 +36,68 @@ export const deleteCompany = createAsyncThunk(
   }
 );
 
+export const bulkDeleteCompanies = createAsyncThunk(
+  'companies/bulkDeleteCompanies',
+  async (ids: string[]) => {
+    for (const id of ids) {
+      StorageService.deleteCompany(id);
+    }
+    return ids;
+  }
+);
+
+export const updateCompany = createAsyncThunk(
+  'companies/updateCompany',
+  async (company: CompanyFinancials) => {
+    const updatedCompany = {
+      ...company,
+      updatedAt: new Date()
+    };
+    StorageService.saveCompany(updatedCompany);
+    return updatedCompany;
+  }
+);
+
+export const detectDuplicateCompanies = createAsyncThunk(
+  'companies/detectDuplicateCompanies',
+  async (_, { getState }) => {
+    const state = getState() as { companies: CompaniesState };
+    const companies = state.companies.data;
+    
+    const duplicates: { [key: string]: CompanyFinancials[] } = {};
+    
+    // Group companies by normalized name
+    companies.forEach(company => {
+      const normalizedName = company.company.toLowerCase().trim().replace(/\s+/g, ' ');
+      if (!duplicates[normalizedName]) {
+        duplicates[normalizedName] = [];
+      }
+      duplicates[normalizedName].push(company);
+    });
+    
+    // Filter out groups with only one company
+    const actualDuplicates: { [key: string]: CompanyFinancials[] } = {};
+    Object.entries(duplicates).forEach(([name, companies]) => {
+      if (companies.length > 1) {
+        actualDuplicates[name] = companies;
+      }
+    });
+    
+    return actualDuplicates;
+  }
+);
+
+export const mergeCompanies = createAsyncThunk(
+  'companies/mergeCompanies',
+  async ({ primaryId, duplicateIds }: { primaryId: string; duplicateIds: string[] }) => {
+    // Delete duplicate companies
+    for (const id of duplicateIds) {
+      StorageService.deleteCompany(id);
+    }
+    return { primaryId, duplicateIds };
+  }
+);
+
 export const importCompanyData = createAsyncThunk(
   'companies/importCompanyData',
   async (company: CompanyFinancials, { rejectWithValue }) => {
@@ -58,7 +120,8 @@ const initialState: CompaniesState = {
   loading: false,
   error: null,
   selectedQuarter: 'Q4',
-  selectedYear: new Date().getFullYear()
+  selectedYear: new Date().getFullYear(),
+  duplicates: {}
 };
 
 const companiesSlice = createSlice({
@@ -81,6 +144,9 @@ const companiesSlice = createSlice({
       } else {
         state.data.push(action.payload);
       }
+    },
+    clearDuplicates: (state) => {
+      state.duplicates = {};
     }
   },
   extraReducers: (builder) => {
@@ -150,6 +216,52 @@ const companiesSlice = createSlice({
       .addCase(importCompanyData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string || 'Failed to import company data';
+      })
+      // Bulk delete companies
+      .addCase(bulkDeleteCompanies.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(bulkDeleteCompanies.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = state.data.filter(c => !action.payload.includes(c.id));
+      })
+      .addCase(bulkDeleteCompanies.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to delete companies';
+      })
+      // Update company
+      .addCase(updateCompany.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateCompany.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.data.findIndex(c => c.id === action.payload.id);
+        if (index !== -1) {
+          state.data[index] = action.payload;
+        }
+      })
+      .addCase(updateCompany.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update company';
+      })
+      // Detect duplicates
+      .addCase(detectDuplicateCompanies.fulfilled, (state, action) => {
+        state.duplicates = action.payload;
+      })
+      // Merge companies
+      .addCase(mergeCompanies.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(mergeCompanies.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = state.data.filter(c => !action.payload.duplicateIds.includes(c.id));
+      })
+      .addCase(mergeCompanies.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to merge companies';
       });
   }
 });
@@ -158,7 +270,8 @@ export const {
   setSelectedQuarter, 
   setSelectedYear, 
   clearError, 
-  updateCompanyInState 
+  updateCompanyInState,
+  clearDuplicates
 } = companiesSlice.actions;
 
 export default companiesSlice.reducer;

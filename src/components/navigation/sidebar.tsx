@@ -37,6 +37,12 @@ const navigation = [
     description: "Import company data",
   },
   {
+    name: "Manage Companies",
+    href: "/companies",
+    icon: Settings,
+    description: "Manage imported companies",
+  },
+  {
     name: "Watchlists",
     href: "/watchlist",
     icon: Eye,
