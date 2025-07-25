@@ -1,5 +1,8 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from './store';
+
+// Re-export the hooks for easier importing
+export { useAppDispatch, useAppSelector };
 import {
   loadCompanies,
   saveCompany,

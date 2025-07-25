@@ -2,10 +2,12 @@ import {
   CompanyFinancials,
   Portfolio,
   Watchlist,
+  NSECompany,
   UserPreferences,
   StoredCompanies,
   StoredPortfolios,
   StoredWatchlists,
+  StoredNSECompanies,
   ValidationResult,
   ValidationError,
   DataError
@@ -116,14 +118,24 @@ export class StorageService {
 
       const normalizedCompanies = normalizeCompanyData(validation.data!);
 
+      // Enhance companies with NSE data if available
+      const enhancedCompanies = normalizedCompanies.map(company => {
+        const nameValidation = this.validateAndCorrectCompanyName(company.company);
+        return {
+          ...company,
+          company: nameValidation.correctedName,
+          symbol: nameValidation.symbol || company.symbol
+        };
+      });
+
       // Save all companies
-      for (const company of normalizedCompanies) {
+      for (const company of enhancedCompanies) {
         this.saveCompany(company);
       }
 
       return {
         isValid: true,
-        data: normalizedCompanies,
+        data: enhancedCompanies,
         errors: []
       };
     } catch (error) {
@@ -294,6 +306,113 @@ export class StorageService {
     localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(updated));
   }
 
+  // NSE Company operations
+  static saveNSECompanies(companies: NSECompany[]): void {
+    this.validateStorage();
+
+    if (!Array.isArray(companies)) {
+      throw new ValidationError('Companies must be an array');
+    }
+
+    try {
+      const storedCompanies: StoredNSECompanies = companies.reduce(
+        (acc, company) => ({ ...acc, [company.symbol]: company }),
+        {}
+      );
+
+      const serialized = safeSerialize(storedCompanies);
+      localStorage.setItem(STORAGE_KEYS.NSE_COMPANIES, serialized);
+    } catch (error) {
+      throw new DataError(`Failed to save NSE companies: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  static getNSECompany(symbol: string): NSECompany | null {
+    if (!symbol) {
+      throw new ValidationError('Symbol is required');
+    }
+
+    const companies = this.getAllNSECompanies();
+    return companies.find(c => c.symbol.toUpperCase() === symbol.toUpperCase()) || null;
+  }
+
+  static getAllNSECompanies(): NSECompany[] {
+    this.validateStorage();
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.NSE_COMPANIES);
+      if (!stored) return [];
+
+      const companies: StoredNSECompanies = safeDeserialize(stored);
+      return Object.values(companies);
+    } catch (error) {
+      console.error('Failed to retrieve NSE companies:', error);
+      return [];
+    }
+  }
+
+  static searchNSECompanies(query: string): NSECompany[] {
+    if (!query || !query.trim()) {
+      return this.getAllNSECompanies();
+    }
+
+    const companies = this.getAllNSECompanies();
+    const searchTerm = query.toLowerCase().trim();
+
+    return companies.filter(company => 
+      company.symbol.toLowerCase().includes(searchTerm) ||
+      company.companyName.toLowerCase().includes(searchTerm) ||
+      company.isinNumber.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  static clearNSECompanies(): void {
+    this.validateStorage();
+    localStorage.removeItem(STORAGE_KEYS.NSE_COMPANIES);
+  }
+
+  static validateAndCorrectCompanyName(companyName: string): { correctedName: string; symbol?: string } {
+    const nseCompanies = this.getAllNSECompanies();
+    
+    if (nseCompanies.length === 0) {
+      return { correctedName: companyName };
+    }
+
+    // Use the advanced company matcher if available
+    try {
+      const { CompanyNameMatcher } = require('@/lib/utils/company-matcher');
+      const result = CompanyNameMatcher.validateAndCorrectCompanyName(companyName, nseCompanies);
+      return result;
+    } catch (error) {
+      // Fallback to simple matching if company matcher is not available
+      const exactMatch = nseCompanies.find(nse => 
+        nse.companyName.toLowerCase() === companyName.toLowerCase()
+      );
+
+      if (exactMatch) {
+        return {
+          correctedName: exactMatch.companyName,
+          symbol: exactMatch.symbol
+        };
+      }
+
+      // Partial matching
+      const partialMatch = nseCompanies.find(nse => 
+        nse.companyName.toLowerCase().includes(companyName.toLowerCase()) ||
+        companyName.toLowerCase().includes(nse.companyName.toLowerCase())
+      );
+
+      if (partialMatch) {
+        return {
+          correctedName: partialMatch.companyName,
+          symbol: partialMatch.symbol
+        };
+      }
+
+      return { correctedName: companyName };
+    }
+  }
+
   // Utility methods
   static clearAllData(): void {
     Object.values(STORAGE_KEYS).forEach(key => {
@@ -306,6 +425,7 @@ export class StorageService {
       companies: this.getAllCompanies(),
       portfolios: this.getAllPortfolios(),
       watchlists: this.getAllWatchlists(),
+      nseCompanies: this.getAllNSECompanies(),
       preferences: this.getUserPreferences(),
       exportDate: new Date().toISOString()
     };
@@ -338,6 +458,14 @@ export class StorageService {
           {}
         );
         localStorage.setItem(STORAGE_KEYS.WATCHLISTS, JSON.stringify(watchlists));
+      }
+
+      if (data.nseCompanies) {
+        const nseCompanies: StoredNSECompanies = data.nseCompanies.reduce(
+          (acc: StoredNSECompanies, c: NSECompany) => ({ ...acc, [c.symbol]: c }),
+          {}
+        );
+        localStorage.setItem(STORAGE_KEYS.NSE_COMPANIES, JSON.stringify(nseCompanies));
       }
 
       if (data.preferences) {

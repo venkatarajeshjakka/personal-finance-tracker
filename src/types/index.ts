@@ -2,6 +2,7 @@
 export interface CompanyFinancials {
   id: string;
   company: string;
+  symbol?: string; // NSE symbol for Yahoo Finance API integration
   price: string;
   market_cap: string;
   PE_ratio: string;
@@ -71,6 +72,31 @@ export interface Watchlist {
   updatedAt: Date;
 }
 
+// NSE Company interfaces
+export interface NSECompany {
+  id: string;
+  symbol: string;
+  companyName: string;
+  series: string;
+  dateOfListing: string;
+  paidUpValue: number;
+  marketLot: number;
+  isinNumber: string;
+  faceValue: number;
+  createdAt: Date;
+}
+
+export interface NSECompanyCSVRow {
+  SYMBOL: string;
+  'NAME OF COMPANY': string;
+  SERIES: string;
+  'DATE OF LISTING': string;
+  'PAID UP VALUE': string;
+  'MARKET LOT': string;
+  'ISIN NUMBER': string;
+  'FACE VALUE': string;
+}
+
 // Storage interfaces
 export interface StoredCompanies {
   [companyId: string]: CompanyFinancials;
@@ -82,6 +108,10 @@ export interface StoredPortfolios {
 
 export interface StoredWatchlists {
   [watchlistId: string]: Watchlist;
+}
+
+export interface StoredNSECompanies {
+  [symbol: string]: NSECompany;
 }
 
 export interface UserPreferences {
@@ -96,6 +126,7 @@ export interface RootState {
   companies: CompaniesState;
   portfolios: PortfoliosState;
   watchlists: WatchlistsState;
+  nseCompanies: NSECompaniesState;
   filters: FiltersState;
   ui: UIState;
 }
@@ -129,6 +160,15 @@ export interface FiltersState {
   quarterFilter: string;
   yearFilter: number;
   searchTerm: string;
+}
+
+export interface NSECompaniesState {
+  data: NSECompany[];
+  loading: boolean;
+  error: string | null;
+  searchTerm: string;
+  uploadProgress: number;
+  duplicates: DuplicateReport | null;
 }
 
 export interface UIState {
@@ -228,4 +268,36 @@ export class DataError extends Error {
     super(message);
     this.name = 'DataError';
   }
+}
+
+// CSV Processing interfaces
+export interface DuplicateReport {
+  duplicates: Array<{
+    symbol: string;
+    indices: number[];
+    companyNames: string[];
+  }>;
+  totalDuplicates: number;
+}
+
+export interface MatchResult {
+  match: NSECompany | null;
+  confidence: number;
+  suggestions: NSECompany[];
+}
+
+export interface CSVValidationResult {
+  isValid: boolean;
+  errors: Array<{
+    row: number;
+    field: string;
+    message: string;
+  }>;
+  warnings: Array<{
+    row: number;
+    field: string;
+    message: string;
+  }>;
+  processedCount: number;
+  duplicateCount: number;
 }

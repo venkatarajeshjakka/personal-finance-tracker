@@ -10,7 +10,8 @@ import {
   setYearFilter,
   loadCompanies,
   loadPortfolios,
-  loadWatchlists
+  loadWatchlists,
+  loadNSECompanies
 } from '../slices';
 
 // Actions that should trigger localStorage sync
@@ -33,6 +34,10 @@ const SYNC_ACTIONS = [
   'watchlists/addSymbolToWatchlist/fulfilled',
   'watchlists/removeSymbolFromWatchlist/fulfilled',
   'watchlists/updateWatchlistInState',
+
+  // NSE Companies actions
+  'nseCompanies/uploadCSV/fulfilled',
+  'nseCompanies/clearNSECompanies/fulfilled',
 
   // UI preferences that should be persisted
   'ui/setTheme',
@@ -59,8 +64,8 @@ export const localStorageMiddleware: Middleware<{}, RootState> = (store) => (nex
 
   try {
     // Sync user preferences for specific actions
-    if (typeof action === 'object' && action !== null && 'type' in action && 
-        PREFERENCES_SYNC_ACTIONS.some(actionType => action.type === actionType)) {
+    if (typeof action === 'object' && action !== null && 'type' in action &&
+      PREFERENCES_SYNC_ACTIONS.some(actionType => action.type === actionType)) {
       const preferences = {
         defaultQuarter: state.companies.selectedQuarter || state.filters.quarterFilter,
         defaultYear: state.companies.selectedYear || state.filters.yearFilter,
@@ -78,7 +83,7 @@ export const localStorageMiddleware: Middleware<{}, RootState> = (store) => (nex
 
     // Log sync actions in development
     if (process.env.NODE_ENV === 'development' && typeof action === 'object' && action !== null && 'type' in action &&
-        SYNC_ACTIONS.some(actionType => action.type === actionType)) {
+      SYNC_ACTIONS.some(actionType => action.type === actionType)) {
       console.log(`[LocalStorage Sync] Action: ${action.type}`);
     }
 
@@ -124,6 +129,7 @@ export const initializeFromLocalStorage = (store: any) => {
     store.dispatch(loadCompanies());
     store.dispatch(loadPortfolios());
     store.dispatch(loadWatchlists());
+    store.dispatch(loadNSECompanies());
 
   } catch (error) {
     console.error('Failed to load initial state from localStorage:', error);
@@ -155,7 +161,7 @@ export const debouncedLocalStorageMiddleware: Middleware<{}, RootState> = (store
   ];
 
   if (typeof action === 'object' && action !== null && 'type' in action &&
-      DEBOUNCED_ACTIONS.some(actionType => action.type === actionType)) {
+    DEBOUNCED_ACTIONS.some(actionType => action.type === actionType)) {
     if (syncTimeout) {
       clearTimeout(syncTimeout);
     }

@@ -7,6 +7,7 @@ import {
   companiesReducer,
   portfoliosReducer,
   watchlistsReducer,
+  nseCompaniesReducer,
   filtersReducer,
   uiReducer
 } from './slices';
@@ -26,6 +27,7 @@ export const store = configureStore({
     companies: companiesReducer,
     portfolios: portfoliosReducer,
     watchlists: watchlistsReducer,
+    nseCompanies: nseCompaniesReducer,
     filters: filtersReducer,
     ui: uiReducer,
     [financeApi.reducerPath]: financeApi.reducer,

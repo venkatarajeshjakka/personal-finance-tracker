@@ -2,6 +2,7 @@
 export { default as companiesReducer } from './companiesSlice';
 export { default as portfoliosReducer } from './portfoliosSlice';
 export { default as watchlistsReducer } from './watchlistsSlice';
+export { default as nseCompaniesReducer } from './nseCompaniesSlice';
 export { default as filtersReducer } from './filtersSlice';
 export { default as uiReducer } from './uiSlice';
 
@@ -51,6 +52,20 @@ export {
   setSortCriteria,
   setTimeFilter
 } from './filtersSlice';
+
+export {
+  uploadNSECompaniesCSV,
+  loadNSECompanies,
+  searchNSECompanies,
+  clearNSECompanies,
+  findCompanyMatch,
+  setSearchTerm as setNSESearchTerm,
+  setUploadProgress,
+  resetUploadProgress,
+  setDuplicates,
+  clearDuplicates,
+  clearError as clearNSECompaniesError
+} from './nseCompaniesSlice';
 
 export {
   toggleSidebar,
