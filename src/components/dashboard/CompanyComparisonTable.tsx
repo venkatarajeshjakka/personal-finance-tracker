@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CompanyFinancials } from "@/types";
-import { formatCurrency, formatPercentage, getGrowthColorClass, parseGrowthValue } from "@/lib/utils/quarterUtils";
+import { formatCurrency, formatPercentage, getGrowthColorClass, parseGrowthValue, getMarketCapCategory } from "@/lib/utils/quarterUtils";
 import { ArrowUpDown, ArrowUp, ArrowDown, Building2 } from "lucide-react";
 
 interface CompanyComparisonTableProps {
@@ -17,18 +17,18 @@ interface CompanyComparisonTableProps {
 type SortField = 'company' | 'sales' | 'EBIDT' | 'net_profit' | 'EPS' | 'sales_growth' | 'EBIDT_growth' | 'net_profit_growth' | 'EPS_growth';
 type SortOrder = 'asc' | 'desc';
 
-export function CompanyComparisonTable({ 
-  companies, 
-  selectedQuarter, 
-  selectedYear 
+export function CompanyComparisonTable({
+  companies,
+  selectedQuarter,
+  selectedYear
 }: CompanyComparisonTableProps) {
   const [sortField, setSortField] = useState<SortField>('sales');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const quarterKey = `${selectedQuarter} ${selectedYear}`;
-  
+
   // Filter companies that have data for the selected quarter
-  const companiesWithData = companies.filter(company => 
+  const companiesWithData = companies.filter(company =>
     company.financials.quarters[quarterKey]
   );
 
@@ -43,7 +43,7 @@ export function CompanyComparisonTable({
 
   const getSortValue = (company: CompanyFinancials, field: SortField): number => {
     const quarterData = company.financials.quarters[quarterKey];
-    
+
     switch (field) {
       case 'company':
         return company.company.toLowerCase().charCodeAt(0);
@@ -71,7 +71,7 @@ export function CompanyComparisonTable({
   const sortedCompanies = [...companiesWithData].sort((a, b) => {
     const aValue = getSortValue(a, sortField);
     const bValue = getSortValue(b, sortField);
-    
+
     if (sortOrder === 'asc') {
       return aValue - bValue;
     } else {
@@ -174,8 +174,21 @@ export function CompanyComparisonTable({
                     <td className="p-2">
                       <div>
                         <div className="font-medium">{company.company}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatCurrency(company.price)} • P/E: {company.PE_ratio}
+                        <div className="text-xs text-muted-foreground mb-1">
+                          {formatCurrency(company.price)} • P/E: {company.PE_ratio} • MCap: {formatCurrency(company.market_cap)}
+                        </div>
+                        <div>
+                          {(() => {
+                            const category = getMarketCapCategory(company.market_cap);
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={`${category.color} ${category.bgColor} border-current text-xs px-2 py-0.5`}
+                              >
+                                {category.label}
+                              </Badge>
+                            );
+                          })()}
                         </div>
                       </div>
                     </td>
@@ -189,7 +202,7 @@ export function CompanyComparisonTable({
                       {formatCurrency(quarterData.net_profit)}
                     </td>
                     <td className="p-2 text-right font-medium">
-                      ₹{quarterData.EPS}
+                      {quarterData.EPS}
                     </td>
                     <td className={`p-2 text-right font-medium ${getGrowthColorClass(company.financials.YOY.sales_growth)}`}>
                       {formatPercentage(company.financials.YOY.sales_growth)}
@@ -209,10 +222,10 @@ export function CompanyComparisonTable({
             </tbody>
           </table>
         </div>
-        
+
         {companiesWithData.length > 0 && (
           <div className="mt-4 text-sm text-muted-foreground">
-            Showing {companiesWithData.length} companies with data for {quarterKey}. 
+            Showing {companiesWithData.length} companies with data for {quarterKey}.
             Click column headers to sort.
           </div>
         )}

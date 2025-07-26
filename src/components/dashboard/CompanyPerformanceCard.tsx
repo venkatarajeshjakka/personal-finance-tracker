@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompanyFinancials, QuarterData } from "@/types";
-import { formatCurrency, formatPercentage, getGrowthColorClass } from "@/lib/utils/quarterUtils";
+import { formatCurrency, formatPercentage, getGrowthColorClass, getMarketCapCategory } from "@/lib/utils/quarterUtils";
 import { TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
 
 interface CompanyPerformanceCardProps {
@@ -120,7 +120,7 @@ export function CompanyPerformanceCard({
           
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">EPS</p>
-            <p className="text-xl font-semibold">₹{quarterData.EPS}</p>
+            <p className="text-xl font-semibold">{quarterData.EPS}</p>
           </div>
         </div>
 
@@ -168,6 +168,21 @@ export function CompanyPerformanceCard({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Market Cap Category Badge */}
+        <div className="border-t pt-3">
+          {(() => {
+            const category = getMarketCapCategory(company.market_cap);
+            return (
+              <Badge 
+                variant="outline" 
+                className={`${category.color} ${category.bgColor} border-current text-sm px-3 py-1`}
+              >
+                {category.label}
+              </Badge>
+            );
+          })()}
         </div>
       </CardContent>
     </Card>
