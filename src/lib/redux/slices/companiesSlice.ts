@@ -68,7 +68,7 @@ export const detectDuplicateCompanies = createAsyncThunk(
     
     // Group companies by normalized name
     companies.forEach(company => {
-      const normalizedName = company.company.toLowerCase().trim().replace(/\s+/g, ' ');
+      const normalizedName = (company.company || '').toLowerCase().trim().replace(/\s+/g, ' ');
       if (!duplicates[normalizedName]) {
         duplicates[normalizedName] = [];
       }

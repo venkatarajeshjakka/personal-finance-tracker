@@ -168,7 +168,7 @@ function validateCompanyData(company: any): ValidationResult<Omit<CompanyFinanci
 
   for (const field of requiredStringFields) {
     const value = field === 'name' ? company.name || company.company : company[field];
-    if (typeof value === 'string' && value.trim()) {
+    if (typeof value === 'string' && value && value.trim()) {
       if (field === 'name') {
         validatedCompany.company = value.trim();
       } else {

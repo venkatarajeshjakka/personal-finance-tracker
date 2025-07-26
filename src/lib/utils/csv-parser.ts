@@ -35,7 +35,7 @@ export class CSVParserService {
       for (let i = 1; i < lines.length; i++) {
         try {
           const values = this.parseCSVLine(lines[i]);
-          if (values.length === 0 || values.every(v => !v.trim())) {
+          if (values.length === 0 || values.every(v => !v || !v.trim())) {
             continue; // Skip empty lines
           }
 
@@ -122,7 +122,7 @@ export class CSVParserService {
    */
   static validateCSVHeaders(headers: string[]): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const normalizedHeaders = headers.map(h => h.trim().toUpperCase());
+    const normalizedHeaders = headers.map(h => (h || '').trim().toUpperCase());
     
     for (const requiredHeader of this.REQUIRED_HEADERS) {
       if (!normalizedHeaders.includes(requiredHeader.toUpperCase())) {
@@ -144,24 +144,24 @@ export class CSVParserService {
     const warnings: Array<{ row: number; field: string; message: string }> = [];
 
     // Validate SYMBOL
-    if (!row.SYMBOL || !row.SYMBOL.trim()) {
+    if (!row.SYMBOL || typeof row.SYMBOL !== 'string' || !row.SYMBOL.trim()) {
       errors.push({ row: rowIndex, field: 'SYMBOL', message: 'Symbol is required' });
     } else if (row.SYMBOL.length > 20) {
       warnings.push({ row: rowIndex, field: 'SYMBOL', message: 'Symbol is unusually long' });
     }
 
     // Validate NAME OF COMPANY
-    if (!row['NAME OF COMPANY'] || !row['NAME OF COMPANY'].trim()) {
+    if (!row['NAME OF COMPANY'] || typeof row['NAME OF COMPANY'] !== 'string' || !row['NAME OF COMPANY'].trim()) {
       errors.push({ row: rowIndex, field: 'NAME OF COMPANY', message: 'Company name is required' });
     }
 
     // Validate SERIES
-    if (!row.SERIES || !row.SERIES.trim()) {
+    if (!row.SERIES || typeof row.SERIES !== 'string' || !row.SERIES.trim()) {
       errors.push({ row: rowIndex, field: 'SERIES', message: 'Series is required' });
     }
 
     // Validate DATE OF LISTING
-    if (!row['DATE OF LISTING'] || !row['DATE OF LISTING'].trim()) {
+    if (!row['DATE OF LISTING'] || typeof row['DATE OF LISTING'] !== 'string' || !row['DATE OF LISTING'].trim()) {
       errors.push({ row: rowIndex, field: 'DATE OF LISTING', message: 'Date of listing is required' });
     } else {
       const datePattern = /^\d{2}-\w{3}-\d{4}$/; // DD-MMM-YYYY format
@@ -171,7 +171,7 @@ export class CSVParserService {
     }
 
     // Validate PAID UP VALUE
-    if (!row['PAID UP VALUE'] || !row['PAID UP VALUE'].trim()) {
+    if (!row['PAID UP VALUE'] || typeof row['PAID UP VALUE'] !== 'string' || !row['PAID UP VALUE'].trim()) {
       errors.push({ row: rowIndex, field: 'PAID UP VALUE', message: 'Paid up value is required' });
     } else {
       const paidUpValue = parseFloat(row['PAID UP VALUE']);
@@ -181,7 +181,7 @@ export class CSVParserService {
     }
 
     // Validate MARKET LOT
-    if (!row['MARKET LOT'] || !row['MARKET LOT'].trim()) {
+    if (!row['MARKET LOT'] || typeof row['MARKET LOT'] !== 'string' || !row['MARKET LOT'].trim()) {
       errors.push({ row: rowIndex, field: 'MARKET LOT', message: 'Market lot is required' });
     } else {
       const marketLot = parseInt(row['MARKET LOT']);
@@ -191,7 +191,7 @@ export class CSVParserService {
     }
 
     // Validate ISIN NUMBER
-    if (!row['ISIN NUMBER'] || !row['ISIN NUMBER'].trim()) {
+    if (!row['ISIN NUMBER'] || typeof row['ISIN NUMBER'] !== 'string' || !row['ISIN NUMBER'].trim()) {
       errors.push({ row: rowIndex, field: 'ISIN NUMBER', message: 'ISIN number is required' });
     } else {
       const isinPattern = /^[A-Z]{2}[A-Z0-9]{10}$/;
@@ -201,7 +201,7 @@ export class CSVParserService {
     }
 
     // Validate FACE VALUE
-    if (!row['FACE VALUE'] || !row['FACE VALUE'].trim()) {
+    if (!row['FACE VALUE'] || typeof row['FACE VALUE'] !== 'string' || !row['FACE VALUE'].trim()) {
       errors.push({ row: rowIndex, field: 'FACE VALUE', message: 'Face value is required' });
     } else {
       const faceValue = parseFloat(row['FACE VALUE']);
@@ -225,13 +225,13 @@ export class CSVParserService {
   static convertCSVRowToNSECompany(row: NSECompanyCSVRow): NSECompany {
     return {
       id: `nse_${row.SYMBOL}_${Date.now()}`,
-      symbol: row.SYMBOL.trim(),
-      companyName: row['NAME OF COMPANY'].trim(),
-      series: row.SERIES.trim(),
-      dateOfListing: row['DATE OF LISTING'].trim(),
+      symbol: (row.SYMBOL || '').trim(),
+      companyName: (row['NAME OF COMPANY'] || '').trim(),
+      series: (row.SERIES || '').trim(),
+      dateOfListing: (row['DATE OF LISTING'] || '').trim(),
       paidUpValue: parseFloat(row['PAID UP VALUE']) || 0,
       marketLot: parseInt(row['MARKET LOT']) || 1,
-      isinNumber: row['ISIN NUMBER'].trim(),
+      isinNumber: (row['ISIN NUMBER'] || '').trim(),
       faceValue: parseFloat(row['FACE VALUE']) || 0,
       createdAt: new Date()
     };

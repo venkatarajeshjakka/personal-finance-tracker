@@ -21,6 +21,7 @@ import {
   debouncedLocalStorageMiddleware,
   initializeFromLocalStorage
 } from './middleware/localStorageMiddleware';
+import { toastMiddleware } from './middleware/toastMiddleware';
 
 export const store = configureStore({
   reducer: {
@@ -61,6 +62,7 @@ export const store = configureStore({
       },
     })
       .concat(financeApi.middleware)
+      .concat(toastMiddleware)
       .concat(localStorageMiddleware)
       .concat(debouncedLocalStorageMiddleware),
 });

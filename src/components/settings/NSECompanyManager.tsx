@@ -5,13 +5,12 @@ import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import type { RootState } from '@/types';
 import {
   loadNSECompanies,
-  uploadNSECompaniesCSV,
   searchNSECompanies,
-  clearNSECompanies,
   setNSESearchTerm,
   clearNSECompaniesError,
   clearDuplicates
 } from '@/lib/redux/slices';
+import { uploadNSECompaniesWithToast, clearNSECompaniesWithToast } from '@/lib/redux/actions/toastActions';
 import { CSVUploader } from './CSVUploader';
 import { NSECompanyList } from './NSECompanyList';
 import { DuplicateReport } from './DuplicateReport';
@@ -22,6 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Upload, Trash2, AlertCircle, CheckCircle } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 
 export function NSECompanyManager() {
   const dispatch = useAppDispatch();
@@ -35,6 +35,7 @@ export function NSECompanyManager() {
   } = useAppSelector((state: RootState) => state.nseCompanies);
 
   const [showUploader, setShowUploader] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     dispatch(loadNSECompanies());
@@ -42,7 +43,7 @@ export function NSECompanyManager() {
 
   const handleSearch = (value: string) => {
     dispatch(setNSESearchTerm(value));
-    if (value.trim()) {
+    if (value && value.trim()) {
       dispatch(searchNSECompanies(value));
     } else {
       dispatch(loadNSECompanies());
@@ -51,17 +52,29 @@ export function NSECompanyManager() {
 
   const handleClearData = async () => {
     if (window.confirm('Are you sure you want to clear all NSE company data? This action cannot be undone.')) {
-      await dispatch(clearNSECompanies());
-      dispatch(clearDuplicates());
+      try {
+        await dispatch(clearNSECompaniesWithToast());
+        dispatch(clearDuplicates());
+      } catch (error) {
+        // Error is handled by toast action
+      }
     }
   };
 
   const handleCSVUpload = async (csvContent: string) => {
     try {
-      await dispatch(uploadNSECompaniesCSV(csvContent)).unwrap();
+      await dispatch(uploadNSECompaniesWithToast(csvContent));
       setShowUploader(false);
+
+      // Show data quality warnings if duplicates were found
+      if (duplicates && duplicates.totalDuplicates > 0) {
+        toast.dataQuality.warning(
+          'NSE Company Upload',
+          [`${duplicates.totalDuplicates} duplicate entries found and removed`]
+        );
+      }
     } catch (error) {
-      // Error is handled by the Redux slice
+      // Error is handled by toast action
     }
   };
 
@@ -92,7 +105,7 @@ export function NSECompanyManager() {
             </Badge>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
@@ -103,7 +116,7 @@ export function NSECompanyManager() {
             <Upload className="h-4 w-4" />
             <span>Upload CSV</span>
           </Button>
-          
+
           {companies.length > 0 && (
             <Button
               variant="destructive"

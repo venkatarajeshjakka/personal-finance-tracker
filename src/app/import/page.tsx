@@ -27,7 +27,7 @@ export default function ImportPage() {
         try {
             setValidationError(null);
 
-            if (!jsonInput.trim()) {
+            if (!jsonInput || !jsonInput.trim()) {
                 setValidationError("Please enter JSON data");
                 return;
             }

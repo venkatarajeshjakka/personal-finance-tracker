@@ -5,7 +5,7 @@ export class CompanyNameMatcher {
    * Find the best matching NSE company for a given company name
    */
   static findBestMatch(inputName: string, nseCompanies: NSECompany[]): MatchResult {
-    if (!inputName || !inputName.trim()) {
+    if (!inputName || typeof inputName !== 'string' || !inputName.trim()) {
       return {
         match: null,
         confidence: 0,
@@ -78,6 +78,9 @@ export class CompanyNameMatcher {
    * Normalize company name for better matching
    */
   static normalizeCompanyName(name: string): string {
+    if (!name || typeof name !== 'string') {
+      return '';
+    }
     return name
       .trim()
       .replace(/\s+/g, ' ') // Multiple spaces to single space

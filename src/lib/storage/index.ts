@@ -352,7 +352,7 @@ export class StorageService {
   }
 
   static searchNSECompanies(query: string): NSECompany[] {
-    if (!query || !query.trim()) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
       return this.getAllNSECompanies();
     }
 
