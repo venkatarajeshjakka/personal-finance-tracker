@@ -8,6 +8,10 @@ import {
   importCompanyData,
   mergeCompanies
 } from '../slices/companiesSlice';
+import {
+  saveMarketCapThresholds,
+  resetMarketCapThresholds
+} from '../slices/settingsSlice';
 import { 
   savePortfolio, 
   deletePortfolio, 
@@ -255,6 +259,31 @@ export const batchImportCompaniesWithToast = (companies: CompanyFinancials[]) =>
     }));
 
     return ToastService.batch(operations, 'Company Import');
+  };
+
+// Settings Actions with Toast
+export const saveMarketCapThresholdsWithToast = (thresholds: any) => 
+  async (dispatch: AppDispatch) => {
+    return ToastService.promise(
+      dispatch(saveMarketCapThresholds(thresholds)).unwrap(),
+      {
+        loading: 'Saving market cap thresholds...',
+        success: 'Market cap thresholds saved successfully!',
+        error: (error: any) => error || 'Failed to save market cap thresholds'
+      }
+    );
+  };
+
+export const resetMarketCapThresholdsWithToast = () => 
+  async (dispatch: AppDispatch) => {
+    return ToastService.promise(
+      dispatch(resetMarketCapThresholds()).unwrap(),
+      {
+        loading: 'Resetting to defaults...',
+        success: 'Market cap thresholds reset to default values',
+        error: 'Failed to reset market cap thresholds'
+      }
+    );
   };
 
 // Simple validation helpers

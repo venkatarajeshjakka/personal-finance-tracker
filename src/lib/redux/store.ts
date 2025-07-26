@@ -9,7 +9,8 @@ import {
   watchlistsReducer,
   nseCompaniesReducer,
   filtersReducer,
-  uiReducer
+  uiReducer,
+  settingsReducer
 } from './slices';
 
 // Import API
@@ -31,6 +32,7 @@ export const store = configureStore({
     nseCompanies: nseCompaniesReducer,
     filters: filtersReducer,
     ui: uiReducer,
+    settings: settingsReducer,
     [financeApi.reducerPath]: financeApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

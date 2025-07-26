@@ -5,6 +5,7 @@ export { default as watchlistsReducer } from './watchlistsSlice';
 export { default as nseCompaniesReducer } from './nseCompaniesSlice';
 export { default as filtersReducer } from './filtersSlice';
 export { default as uiReducer } from './uiSlice';
+export { default as settingsReducer } from './settingsSlice';
 
 // Export actions with prefixes to avoid naming conflicts
 export {
@@ -79,3 +80,11 @@ export {
   clearNotifications,
   clearReadNotifications
 } from './uiSlice';
+
+export {
+  loadMarketCapThresholds,
+  saveMarketCapThresholds,
+  resetMarketCapThresholds,
+  updateMarketCapThresholds,
+  clearError as clearSettingsError
+} from './settingsSlice';

@@ -216,15 +216,22 @@ export interface MarketCapCategory {
   threshold: number;
 }
 
-export const MARKET_CAP_CATEGORIES: MarketCapCategory[] = [
-  { label: 'Micro Cap', color: 'text-purple-700', bgColor: 'bg-purple-100', threshold: 0 },
-  { label: 'Small Cap', color: 'text-blue-700', bgColor: 'bg-blue-100', threshold: 500 },
-  { label: 'Mid Cap', color: 'text-orange-700', bgColor: 'bg-orange-100', threshold: 5000 },
-  { label: 'Large Cap', color: 'text-green-700', bgColor: 'bg-green-100', threshold: 20000 }
-];
+export interface MarketCapThresholds {
+  microCap: number;
+  smallCap: number;
+  midCap: number;
+  largeCap: number;
+}
+
+export const DEFAULT_MARKET_CAP_THRESHOLDS: MarketCapThresholds = {
+  microCap: 0,
+  smallCap: 500,
+  midCap: 5000,
+  largeCap: 20000
+};
 
 /**
- * Get market cap category based on market cap value
+ * Get market cap category based on market cap value using Redux store thresholds
  */
 export function getMarketCapCategory(marketCapValue: string | number): MarketCapCategory {
   let numValue: number;
@@ -241,13 +248,34 @@ export function getMarketCapCategory(marketCapValue: string | number): MarketCap
   // Convert to crores for comparison
   const valueInCrores = numValue / 10000000;
 
+  // Get current thresholds from localStorage (fallback to defaults)
+  let thresholds = DEFAULT_MARKET_CAP_THRESHOLDS;
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('marketCapThresholds');
+      if (saved) {
+        thresholds = JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to load market cap thresholds:', error);
+    }
+  }
+
+  // Create categories with current thresholds
+  const categories: MarketCapCategory[] = [
+    { label: 'Micro Cap', color: 'text-purple-700', bgColor: 'bg-purple-100', threshold: thresholds.microCap },
+    { label: 'Small Cap', color: 'text-blue-700', bgColor: 'bg-blue-100', threshold: thresholds.smallCap },
+    { label: 'Mid Cap', color: 'text-orange-700', bgColor: 'bg-orange-100', threshold: thresholds.midCap },
+    { label: 'Large Cap', color: 'text-green-700', bgColor: 'bg-green-100', threshold: thresholds.largeCap }
+  ];
+
   // Find the appropriate category (reverse order to get the highest matching threshold)
-  for (let i = MARKET_CAP_CATEGORIES.length - 1; i >= 0; i--) {
-    if (valueInCrores >= MARKET_CAP_CATEGORIES[i].threshold) {
-      return MARKET_CAP_CATEGORIES[i];
+  for (let i = categories.length - 1; i >= 0; i--) {
+    if (valueInCrores >= categories[i].threshold) {
+      return categories[i];
     }
   }
 
   // Default to Micro Cap if no threshold is met
-  return MARKET_CAP_CATEGORIES[0];
+  return categories[0];
 }

@@ -129,6 +129,7 @@ export interface RootState {
   nseCompanies: NSECompaniesState;
   filters: FiltersState;
   ui: UIState;
+  settings: SettingsState;
 }
 
 export interface CompaniesState {
@@ -175,6 +176,17 @@ export interface UIState {
   sidebarOpen: boolean;
   theme: 'light' | 'dark';
   notifications: Notification[];
+}
+
+export interface SettingsState {
+  marketCapThresholds: {
+    microCap: number;
+    smallCap: number;
+    midCap: number;
+    largeCap: number;
+  };
+  loading: boolean;
+  error: string | null;
 }
 
 export interface Notification {

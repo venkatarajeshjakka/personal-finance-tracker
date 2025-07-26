@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NSECompanyManager } from '@/components/settings/NSECompanyManager';
+import { MarketCapSettings } from '@/components/settings/MarketCapSettings';
 import { AppLayout } from '@/components/navigation';
 
 export default function SettingsPage() {
@@ -40,19 +41,7 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="preferences" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Application Preferences</CardTitle>
-                <CardDescription>
-                  Configure your default settings and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-muted-foreground">
-                  Preferences settings will be implemented in a future update.
-                </div>
-              </CardContent>
-            </Card>
+            <MarketCapSettings />
           </TabsContent>
 
           <TabsContent value="data-management" className="space-y-6">
