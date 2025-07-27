@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NSECompanyManager } from '@/components/settings/NSECompanyManager';
 import { MarketCapSettings } from '@/components/settings/MarketCapSettings';
+import PriceUpdateSettings from '@/components/settings/PriceUpdateSettings';
 import { AppLayout } from '@/components/navigation';
 
 export default function SettingsPage() {
@@ -19,8 +20,9 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="nse-companies" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="nse-companies">NSE Companies</TabsTrigger>
+            <TabsTrigger value="price-updates">Price Updates</TabsTrigger>
             <TabsTrigger value="preferences">Preferences</TabsTrigger>
             <TabsTrigger value="data-management">Data Management</TabsTrigger>
             <TabsTrigger value="api-settings">API Settings</TabsTrigger>
@@ -38,6 +40,10 @@ export default function SettingsPage() {
                 <NSECompanyManager />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="price-updates" className="space-y-6">
+            <PriceUpdateSettings />
           </TabsContent>
 
           <TabsContent value="preferences" className="space-y-6">

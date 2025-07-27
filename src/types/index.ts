@@ -185,6 +185,12 @@ export interface SettingsState {
     midCap: number;
     largeCap: number;
   };
+  priceUpdateSettings: {
+    refreshInterval: number;
+    marketHoursOnly: boolean;
+    checkMarketHolidays: boolean;
+    autoRefreshEnabled: boolean;
+  };
   loading: boolean;
   error: string | null;
 }

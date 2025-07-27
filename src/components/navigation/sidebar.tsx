@@ -43,6 +43,12 @@ const navigation = [
     description: "Manage imported companies",
   },
   {
+    name: "Stock Prices",
+    href: "/stocks",
+    icon: TrendingUp,
+    description: "Real-time stock prices",
+  },
+  {
     name: "Watchlists",
     href: "/watchlist",
     icon: Eye,

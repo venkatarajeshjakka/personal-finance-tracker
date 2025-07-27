@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CompanyFinancials, QuarterData } from "@/types";
 import { formatCurrency, formatPercentage, getGrowthColorClass, getMarketCapCategory } from "@/lib/utils/quarterUtils";
 import { TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
+import StockPrice from "@/components/stocks/StockPrice";
 
 interface CompanyPerformanceCardProps {
   company: CompanyFinancials;
@@ -78,10 +79,27 @@ export function CompanyPerformanceCard({
           </CardTitle>
           <Badge variant="secondary">{quarterKey}</Badge>
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>Price: {formatCurrency(company.price)}</span>
-          <span>P/E: {company.PE_ratio}</span>
-          <span>MCap: {formatCurrency(company.market_cap)}</span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>Data Price: {formatCurrency(company.price)}</span>
+            <span>P/E: {company.PE_ratio}</span>
+            <span>MCap: {formatCurrency(company.market_cap)}</span>
+          </div>
+          
+          {/* Real-time Stock Price */}
+          {company.symbol && (
+            <div className="p-2 bg-muted/50 rounded-md">
+              <div className="text-xs text-muted-foreground mb-1">Live Price ({company.symbol})</div>
+              <StockPrice
+                symbol={company.symbol}
+                companyName={company.company}
+                showChange={true}
+                showRefresh={false}
+                size="sm"
+                className="text-sm"
+              />
+            </div>
+          )}
         </div>
       </CardHeader>
       

@@ -86,5 +86,9 @@ export {
   saveMarketCapThresholds,
   resetMarketCapThresholds,
   updateMarketCapThresholds,
+  loadPriceUpdateSettings,
+  savePriceUpdateSettings,
+  resetPriceUpdateSettings,
+  updatePriceUpdateSettings,
   clearError as clearSettingsError
 } from './settingsSlice';
