@@ -104,7 +104,7 @@ export class StorageService {
   /**
    * Import company data from JSON (supports both single and multiple company formats)
    */
-  static importCompanyData(jsonData: string): ValidationResult<CompanyFinancials[]> {
+  static async importCompanyData(jsonData: string): Promise<ValidationResult<CompanyFinancials[]>> {
     try {
       const parsed = JSON.parse(jsonData);
       const validation = detectAndValidateJSONFormat(parsed);
@@ -118,26 +118,48 @@ export class StorageService {
 
       const normalizedCompanies = normalizeCompanyData(validation.data!);
 
-      // Enhance companies with NSE data if available
-      const enhancedCompanies = normalizedCompanies.map(company => {
-        const nameValidation = this.validateAndCorrectCompanyName(company.company);
+      // Use the enhanced import processor for name correction and symbol addition
+      try {
+        const { ImportProcessor } = await import('@/lib/utils/import-processor');
+        const result = await ImportProcessor.processCompanyImport(normalizedCompanies, {
+          showNotifications: false, // Don't show notifications in storage service
+          autoCorrect: true
+        });
+
+        // Save all processed companies
+        for (const company of result.processedCompanies) {
+          this.saveCompany(company);
+        }
+
         return {
-          ...company,
-          company: nameValidation.correctedName,
-          symbol: nameValidation.symbol || company.symbol
+          isValid: true,
+          data: result.processedCompanies,
+          errors: result.errors
         };
-      });
+      } catch (importError) {
+        // Fallback to basic enhancement if import processor fails
+        console.warn('Import processor failed, using basic enhancement:', importError);
+        
+        const enhancedCompanies = normalizedCompanies.map(company => {
+          const nameValidation = this.validateAndCorrectCompanyName(company.company);
+          return {
+            ...company,
+            company: nameValidation.correctedName,
+            symbol: nameValidation.symbol || company.symbol
+          };
+        });
 
-      // Save all companies
-      for (const company of enhancedCompanies) {
-        this.saveCompany(company);
+        // Save all companies
+        for (const company of enhancedCompanies) {
+          this.saveCompany(company);
+        }
+
+        return {
+          isValid: true,
+          data: enhancedCompanies,
+          errors: []
+        };
       }
-
-      return {
-        isValid: true,
-        data: enhancedCompanies,
-        errors: []
-      };
     } catch (error) {
       return {
         isValid: false,

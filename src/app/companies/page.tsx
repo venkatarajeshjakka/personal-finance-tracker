@@ -207,22 +207,47 @@ export default function CompaniesPage() {
     if (!companyToDelete) return;
     
     try {
-      await dispatch(deleteCompany(companyToDelete.id)).unwrap();
+      const result = await dispatch(deleteCompany(companyToDelete.id)).unwrap();
+      
+      // Show success toast
+      const { toast } = await import('sonner');
+      toast.success(`Successfully deleted "${result.companyName}"`, { duration: 4000 });
+      
       setDeleteDialogOpen(false);
       setCompanyToDelete(null);
     } catch (error) {
       console.error("Failed to delete company:", error);
+      const { toast } = await import('sonner');
+      toast.error('Failed to delete company: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
   // Handle bulk deletion
   const handleBulkDelete = async () => {
     try {
-      await dispatch(bulkDeleteCompanies(Array.from(selectedCompanies))).unwrap();
+      const { toast } = await import('sonner');
+      
+      // Show progress toast
+      const progressToastId = toast.loading(`Deleting ${selectedCompanies.size} companies...`);
+      
+      const result = await dispatch(bulkDeleteCompanies(Array.from(selectedCompanies))).unwrap();
+      
+      // Dismiss progress toast
+      toast.dismiss(progressToastId);
+      
+      // Show result toast
+      if (result.deletedCount === result.totalRequested) {
+        toast.success(`Successfully deleted ${result.deletedCount} companies`, { duration: 4000 });
+      } else {
+        toast.warning(`Deleted ${result.deletedCount} of ${result.totalRequested} companies. Some deletions may have failed.`, { duration: 6000 });
+      }
+      
       setSelectedCompanies(new Set());
       setBulkDeleteDialogOpen(false);
     } catch (error) {
       console.error("Failed to delete companies:", error);
+      const { toast } = await import('sonner');
+      toast.error('Failed to delete companies: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -236,8 +261,16 @@ export default function CompaniesPage() {
   const handleSaveEditedCompany = async (company: CompanyFinancials) => {
     try {
       await dispatch(updateCompany(company)).unwrap();
+      
+      // Show success toast
+      const { toast } = await import('sonner');
+      toast.success(`Successfully updated "${company.company}"`, { duration: 4000 });
     } catch (error) {
       console.error("Failed to update company:", error);
+      
+      // Show error toast
+      const { toast } = await import('sonner');
+      toast.error('Failed to update company: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 

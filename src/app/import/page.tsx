@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/store";
-import { importCompanyData } from "@/lib/redux/slices/companiesSlice";
+import { importCompaniesWithProcessing } from "@/lib/redux/slices/companiesSlice";
 import { CompanyFinancials } from "@/types";
 import { formatCurrency, formatPercentage, getGrowthColorClass } from "@/lib/utils/quarterUtils";
 import { Upload, Eye, AlertCircle, CheckCircle, FileText } from "lucide-react";
@@ -111,9 +111,36 @@ export default function ImportPage() {
         if (!previewData) return;
 
         try {
-            // Import each company
-            for (const company of previewData) {
-                await dispatch(importCompanyData(company)).unwrap();
+            // Import companies with enhanced processing (disable notifications to avoid duplicates)
+            const result = await dispatch(importCompaniesWithProcessing({
+                companies: previewData,
+                options: {
+                    showNotifications: false, // Disable to avoid duplicate toasts
+                    autoCorrect: true
+                }
+            })).unwrap();
+
+            // Show single success toast
+            const { toast } = await import('sonner');
+            const { companies, corrections, warnings, errors } = result;
+            
+            if (errors.length > 0) {
+                toast.error(`Import completed with ${errors.length} errors. Check console for details.`, { duration: 8000 });
+            } else if (warnings.length > 0) {
+                toast.warning(`Successfully imported ${companies.length} companies with ${warnings.length} warnings.`, { duration: 6000 });
+            } else {
+                const exactMatches = corrections.filter(c => c.type === 'exact_match').length;
+                const fuzzyMatches = corrections.filter(c => c.type === 'fuzzy_match').length;
+                
+                let message = `Successfully imported ${companies.length} companies`;
+                if (exactMatches > 0 || fuzzyMatches > 0) {
+                    const corrections = [];
+                    if (exactMatches > 0) corrections.push(`${exactMatches} exact matches`);
+                    if (fuzzyMatches > 0) corrections.push(`${fuzzyMatches} fuzzy matches`);
+                    message += ` with ${corrections.join(', ')}`;
+                }
+                
+                toast.success(message, { duration: 6000 });
             }
 
             // Clear form on success
@@ -121,8 +148,13 @@ export default function ImportPage() {
             setPreviewData(null);
             setShowPreview(false);
             setValidationError(null);
+
+            // Log processing results for debugging
+            console.log('Import processing results:', result);
         } catch (error) {
             console.error("Import failed:", error);
+            const { toast } = await import('sonner');
+            toast.error('Import failed: ' + (error instanceof Error ? error.message : 'Unknown error'), { duration: 8000 });
         }
     };
 

@@ -13,7 +13,10 @@ interface ReduxAction {
 const COMPONENT_HANDLED_ACTIONS = new Set([
   'companies/saveCompany',
   'companies/updateCompany',
+  'companies/deleteCompany', // Handled by component
+  'companies/bulkDeleteCompanies', // Handled by component
   'companies/importCompanyData',
+  'companies/importCompaniesWithProcessing', // Handled by component
   'companies/mergeCompanies',
   'portfolios/savePortfolio',
   'portfolios/addTransaction',
@@ -27,13 +30,7 @@ const COMPONENT_HANDLED_ACTIONS = new Set([
 // Define toast messages for different operations
 const TOAST_MESSAGES = {
   // Company operations (excluding manually handled ones)
-  'companies/deleteCompany/pending': 'Deleting company...',
-  'companies/deleteCompany/fulfilled': 'Company deleted successfully!',
-  'companies/deleteCompany/rejected': (action: ReduxAction) => `Failed to delete company: ${action.error?.message || 'Unknown error'}`,
-
-  'companies/bulkDeleteCompanies/pending': (action: ReduxAction) => `Deleting ${action.meta?.arg?.length || 0} companies...`,
-  'companies/bulkDeleteCompanies/fulfilled': (action: ReduxAction) => `Successfully deleted ${action.payload?.length || 0} companies!`,
-  'companies/bulkDeleteCompanies/rejected': (action: ReduxAction) => `Failed to delete companies: ${action.error?.message || 'Unknown error'}`,
+  // Delete operations are now handled by components
 
 
 
@@ -104,12 +101,7 @@ export const toastMiddleware: Middleware = (_store) => (next) => (action) => {
     }
 
     // Handle special cases for progress toasts (NSE upload is handled by toastActions)
-
-    // Handle bulk operations with progress
-    if (reduxAction.type === 'companies/bulkDeleteCompanies/pending') {
-      const count = reduxAction.meta?.arg?.length || 0;
-      ToastService.progress('bulk-delete', `Deleting ${count} companies`, 0, 'Preparing to delete companies...');
-    }
+    // Bulk delete operations are now handled by components
   }
 
   return result;
