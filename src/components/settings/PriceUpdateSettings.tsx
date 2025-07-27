@@ -36,11 +36,36 @@ const PriceUpdateSettings: React.FC = () => {
 
     const getMarketStatusDisplay = () => {
         const statusConfig = {
-            OPEN: { color: 'text-green-600', bg: 'bg-green-50', icon: TrendingUp, text: 'Market Open' },
-            CLOSED: { color: 'text-gray-600', bg: 'bg-gray-50', icon: Clock, text: 'Market Closed' },
-            PRE_MARKET: { color: 'text-blue-600', bg: 'bg-blue-50', icon: Clock, text: 'Pre-Market' },
-            POST_MARKET: { color: 'text-orange-600', bg: 'bg-orange-50', icon: Clock, text: 'Post-Market' },
-            HOLIDAY: { color: 'text-red-600', bg: 'bg-red-50', icon: AlertCircle, text: 'Market Holiday' }
+            OPEN: { 
+                color: 'text-green-600 dark:text-green-400', 
+                bg: 'bg-green-50 dark:bg-green-950/50', 
+                icon: TrendingUp, 
+                text: 'Market Open' 
+            },
+            CLOSED: { 
+                color: 'text-gray-600 dark:text-gray-400', 
+                bg: 'bg-gray-50 dark:bg-gray-800/50', 
+                icon: Clock, 
+                text: 'Market Closed' 
+            },
+            PRE_MARKET: { 
+                color: 'text-blue-600 dark:text-blue-400', 
+                bg: 'bg-blue-50 dark:bg-blue-950/50', 
+                icon: Clock, 
+                text: 'Pre-Market' 
+            },
+            POST_MARKET: { 
+                color: 'text-orange-600 dark:text-orange-400', 
+                bg: 'bg-orange-50 dark:bg-orange-950/50', 
+                icon: Clock, 
+                text: 'Post-Market' 
+            },
+            HOLIDAY: { 
+                color: 'text-red-600 dark:text-red-400', 
+                bg: 'bg-red-50 dark:bg-red-950/50', 
+                icon: AlertCircle, 
+                text: 'Market Holiday' 
+            }
         };
 
         const config = statusConfig[marketStatus.marketState];
@@ -73,7 +98,7 @@ const PriceUpdateSettings: React.FC = () => {
                     <Label className="text-sm font-medium">Current Market Status</Label>
                     {getMarketStatusDisplay()}
                     {marketStatus.nextOpenTime && !marketStatus.isOpen && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                             Next market open: {marketStatus.nextOpenTime.toLocaleString()}
                         </p>
                     )}
@@ -83,7 +108,7 @@ const PriceUpdateSettings: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
                         <Label htmlFor="auto-refresh">Auto Refresh Prices</Label>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Automatically update stock prices at regular intervals
                         </p>
                     </div>
@@ -122,7 +147,7 @@ const PriceUpdateSettings: React.FC = () => {
                             ))}
                         </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                         How often to check for price updates when auto-refresh is enabled
                     </p>
                 </div>
@@ -131,7 +156,7 @@ const PriceUpdateSettings: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
                         <Label htmlFor="market-hours-only">Update During Market Hours Only</Label>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Only update prices when the market is open (9:15 AM - 3:30 PM IST)
                         </p>
                     </div>
@@ -150,7 +175,7 @@ const PriceUpdateSettings: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
                         <Label htmlFor="check-holidays">Skip Updates on Market Holidays</Label>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Don't update prices on NSE holidays and weekends
                         </p>
                     </div>
@@ -166,30 +191,30 @@ const PriceUpdateSettings: React.FC = () => {
                 </div>
 
                 {/* Current Settings Summary */}
-                <div className="p-4 bg-gray-50 rounded-lg space-y-2">
-                    <h4 className="font-medium text-sm">Current Configuration</h4>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-2">
+                    <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">Current Configuration</h4>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                            <span className="text-gray-600">Auto Refresh:</span>
-                            <span className={`ml-2 ${priceUpdateSettings.autoRefreshEnabled ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className="text-gray-600 dark:text-gray-400">Auto Refresh:</span>
+                            <span className={`ml-2 ${priceUpdateSettings.autoRefreshEnabled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {priceUpdateSettings.autoRefreshEnabled ? 'Enabled' : 'Disabled'}
                             </span>
                         </div>
                         <div>
-                            <span className="text-gray-600">Interval:</span>
-                            <span className="ml-2">
+                            <span className="text-gray-600 dark:text-gray-400">Interval:</span>
+                            <span className="ml-2 text-gray-900 dark:text-gray-100">
                                 {refreshIntervalOptions.find(opt => opt.value === priceUpdateSettings.refreshInterval)?.label || 'Custom'}
                             </span>
                         </div>
                         <div>
-                            <span className="text-gray-600">Market Hours Only:</span>
-                            <span className={`ml-2 ${priceUpdateSettings.marketHoursOnly ? 'text-green-600' : 'text-orange-600'}`}>
+                            <span className="text-gray-600 dark:text-gray-400">Market Hours Only:</span>
+                            <span className={`ml-2 ${priceUpdateSettings.marketHoursOnly ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
                                 {priceUpdateSettings.marketHoursOnly ? 'Yes' : 'No'}
                             </span>
                         </div>
                         <div>
-                            <span className="text-gray-600">Skip Holidays:</span>
-                            <span className={`ml-2 ${priceUpdateSettings.checkMarketHolidays ? 'text-green-600' : 'text-orange-600'}`}>
+                            <span className="text-gray-600 dark:text-gray-400">Skip Holidays:</span>
+                            <span className={`ml-2 ${priceUpdateSettings.checkMarketHolidays ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
                                 {priceUpdateSettings.checkMarketHolidays ? 'Yes' : 'No'}
                             </span>
                         </div>
@@ -198,12 +223,12 @@ const PriceUpdateSettings: React.FC = () => {
 
                 {/* Error Display */}
                 {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center gap-2 text-red-700">
+                    <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
                             <AlertCircle className="w-4 h-4" />
                             <span className="text-sm font-medium">Error</span>
                         </div>
-                        <p className="text-sm text-red-600 mt-1">{error}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
                     </div>
                 )}
 

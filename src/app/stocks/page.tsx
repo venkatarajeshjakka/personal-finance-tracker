@@ -4,19 +4,16 @@ import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store';
 import { loadCompanies } from '@/lib/redux/slices/companiesSlice';
-import StockPrice from '@/components/stocks/StockPrice';
+
 import BulkStockPrices from '@/components/stocks/BulkStockPrices';
 import PriceUpdateService from '@/lib/services/priceUpdateService';
 import { 
   TrendingUp, 
-  Search, 
-  RefreshCw, 
   BarChart3, 
   AlertCircle,
   Info,
@@ -27,7 +24,7 @@ export default function StocksPage() {
   const dispatch = useAppDispatch();
   const { data: companies, loading } = useAppSelector(state => state.companies);
   const [mounted, setMounted] = useState(false);
-  const [searchSymbol, setSearchSymbol] = useState('');
+
   const [cacheStats, setCacheStats] = useState({
     totalCached: 0,
     validCached: 0,
@@ -146,7 +143,6 @@ export default function StocksPage() {
         <Tabs defaultValue="bulk" className="space-y-6">
           <TabsList>
             <TabsTrigger value="bulk">Bulk Price Updates</TabsTrigger>
-            <TabsTrigger value="individual">Individual Stock Lookup</TabsTrigger>
             <TabsTrigger value="companies">Company Integration</TabsTrigger>
           </TabsList>
 
@@ -179,8 +175,6 @@ export default function StocksPage() {
                     <BulkStockPrices
                       companies={companiesWithSymbols}
                       showRefresh={true}
-                      autoRefresh={false}
-                      refreshInterval={300000} // 5 minutes
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
@@ -194,70 +188,7 @@ export default function StocksPage() {
             </Card>
           </TabsContent>
 
-          {/* Individual Stock Lookup Tab */}
-          <TabsContent value="individual" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  Individual Stock Lookup
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter stock symbol (e.g., RELIANCE, TCS, INFY)"
-                      value={searchSymbol}
-                      onChange={(e) => setSearchSymbol(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      onClick={() => setSearchSymbol(searchSymbol.toUpperCase())}
-                      disabled={!searchSymbol.trim()}
-                    >
-                      <Search className="h-4 w-4 mr-2" />
-                      Lookup
-                    </Button>
-                  </div>
 
-                  {searchSymbol && (
-                    <Card className="p-4">
-                      <StockPrice
-                        symbol={searchSymbol}
-                        showChange={true}
-                        showRefresh={true}
-                        autoRefresh={false}
-                        size="lg"
-                        className="text-lg"
-                      />
-                    </Card>
-                  )}
-
-                  {/* Popular Indian Stocks Examples */}
-                  <div className="space-y-3">
-                    <h4 className="font-medium">Popular Indian Stocks</h4>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN'].map((symbol) => (
-                        <Card key={symbol} className="p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">{symbol}</span>
-                            <Badge variant="outline" className="text-xs">NSE</Badge>
-                          </div>
-                          <StockPrice
-                            symbol={symbol}
-                            showChange={true}
-                            showRefresh={false}
-                            size="sm"
-                          />
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Company Integration Tab */}
           <TabsContent value="companies" className="space-y-6">
@@ -276,12 +207,10 @@ export default function StocksPage() {
                             <div className="font-medium">{company.company}</div>
                             <div className="text-sm text-muted-foreground">{company.symbol}</div>
                           </div>
-                          <StockPrice
-                            symbol={company.symbol!}
-                            showChange={false}
-                            showRefresh={false}
-                            size="sm"
-                          />
+                          <div className="text-right">
+                            <div className="text-sm text-muted-foreground">Data Price</div>
+                            <div className="font-medium">₹{parseFloat(company.price || '0').toFixed(2)}</div>
+                          </div>
                         </div>
                       ))}
                       {companiesWithSymbols.length > 10 && (

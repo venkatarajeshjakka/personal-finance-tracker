@@ -21,6 +21,7 @@ interface PriceUpdateResult {
     changePercent?: number;
     error?: string;
     cached?: boolean;
+    timestamp?: number; // Unix timestamp when data was fetched/cached
 }
 
 interface BulkPriceUpdateResult {
@@ -76,7 +77,8 @@ class PriceUpdateService {
                 price: cached.price,
                 change: cached.change,
                 changePercent: cached.changePercent,
-                cached: true
+                cached: true,
+                timestamp: cached.timestamp
             };
         }
 
@@ -95,7 +97,8 @@ class PriceUpdateService {
                     price: previousCached.price,
                     change: previousCached.change,
                     changePercent: previousCached.changePercent,
-                    cached: true
+                    cached: true,
+                    timestamp: previousCached.timestamp
                 };
             }
             // If no cached data available, continue to fetch fresh data
@@ -120,6 +123,7 @@ class PriceUpdateService {
             }
 
             const data = await response.json();
+            const fetchTimestamp = Date.now();
 
             // Cache the result
             this.setCachedPrice(formattedSymbol, {
@@ -127,7 +131,7 @@ class PriceUpdateService {
                 price: data.regularMarketPrice,
                 change: data.regularMarketChange,
                 changePercent: data.regularMarketChangePercent,
-                timestamp: Date.now(),
+                timestamp: fetchTimestamp,
                 marketState: data.marketState,
                 currency: data.currency,
                 shortName: data.shortName,
@@ -140,7 +144,8 @@ class PriceUpdateService {
                 price: data.regularMarketPrice,
                 change: data.regularMarketChange,
                 changePercent: data.regularMarketChangePercent,
-                cached: false
+                cached: false,
+                timestamp: fetchTimestamp
             };
 
         } catch (error) {
@@ -187,7 +192,8 @@ class PriceUpdateService {
                     price: cached.price,
                     change: cached.change,
                     changePercent: cached.changePercent,
-                    cached: true
+                    cached: true,
+                    timestamp: cached.timestamp
                 });
             } else {
                 uncachedSymbols.push(symbol);
@@ -212,7 +218,8 @@ class PriceUpdateService {
                         price: previousCached.price,
                         change: previousCached.change,
                         changePercent: previousCached.changePercent,
-                        cached: true
+                        cached: true,
+                        timestamp: previousCached.timestamp
                     });
                 } else {
                     // No cached data available, add to fetch list
@@ -250,13 +257,15 @@ class PriceUpdateService {
                     // Process successful quotes
                     if (data.quotes && Array.isArray(data.quotes)) {
                         for (const quote of data.quotes) {
+                            const fetchTimestamp = Date.now();
+
                             // Cache the result
                             this.setCachedPrice(quote.symbol, {
                                 symbol: quote.symbol,
                                 price: quote.regularMarketPrice,
                                 change: quote.regularMarketChange,
                                 changePercent: quote.regularMarketChangePercent,
-                                timestamp: Date.now(),
+                                timestamp: fetchTimestamp,
                                 marketState: quote.marketState,
                                 currency: quote.currency,
                                 shortName: quote.shortName,
@@ -269,7 +278,8 @@ class PriceUpdateService {
                                 price: quote.regularMarketPrice,
                                 change: quote.regularMarketChange,
                                 changePercent: quote.regularMarketChangePercent,
-                                cached: false
+                                cached: false,
+                                timestamp: fetchTimestamp
                             });
                         }
                     }
