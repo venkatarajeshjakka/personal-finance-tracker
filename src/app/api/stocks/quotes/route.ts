@@ -60,7 +60,17 @@ export async function POST(request: NextRequest) {
                 'regularMarketVolume',
                 'currency',
                 'shortName',
-                'longName'
+                'longName',
+                // Financial metrics
+                'marketCap',
+                'trailingPE',
+                'forwardPE',
+                'priceToBook',
+                'sharesOutstanding',
+                'bookValue',
+                'epsTrailingTwelveMonths',
+                'trailingAnnualDividendYield',
+                'beta'
               ]
             });
 
@@ -82,7 +92,17 @@ export async function POST(request: NextRequest) {
               regularMarketVolume: quote.regularMarketVolume || 0,
               currency: quote.currency || 'INR',
               shortName: quote.shortName || '',
-              longName: quote.longName || ''
+              longName: quote.longName || '',
+              // Financial metrics
+              marketCap: quote.marketCap || null,
+              trailingPE: quote.trailingPE || null,
+              forwardPE: quote.forwardPE || null,
+              priceToBook: quote.priceToBook || null,
+              sharesOutstanding: quote.sharesOutstanding || null,
+              bookValue: quote.bookValue || null,
+              epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths || null,
+              trailingAnnualDividendYield: quote.trailingAnnualDividendYield || null,
+              beta: quote.beta || null
             };
           } catch (error) {
             retryCount++;

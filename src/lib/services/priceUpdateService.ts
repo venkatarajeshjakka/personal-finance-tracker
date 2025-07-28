@@ -11,6 +11,16 @@ interface CachedPrice {
     currency: string;
     shortName?: string;
     longName?: string;
+    // Financial metrics
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+    sharesOutstanding?: number | null;
+    bookValue?: number | null;
+    epsTrailingTwelveMonths?: number | null;
+    trailingAnnualDividendYield?: number | null;
+    beta?: number | null;
 }
 
 interface PriceUpdateResult {
@@ -22,6 +32,16 @@ interface PriceUpdateResult {
     error?: string;
     cached?: boolean;
     timestamp?: number; // Unix timestamp when data was fetched/cached
+    // Financial metrics
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+    sharesOutstanding?: number | null;
+    bookValue?: number | null;
+    epsTrailingTwelveMonths?: number | null;
+    trailingAnnualDividendYield?: number | null;
+    beta?: number | null;
 }
 
 interface BulkPriceUpdateResult {
@@ -78,7 +98,16 @@ class PriceUpdateService {
                 change: cached.change,
                 changePercent: cached.changePercent,
                 cached: true,
-                timestamp: cached.timestamp
+                timestamp: cached.timestamp,
+                marketCap: cached.marketCap,
+                trailingPE: cached.trailingPE,
+                forwardPE: cached.forwardPE,
+                priceToBook: cached.priceToBook,
+                sharesOutstanding: cached.sharesOutstanding,
+                bookValue: cached.bookValue,
+                epsTrailingTwelveMonths: cached.epsTrailingTwelveMonths,
+                trailingAnnualDividendYield: cached.trailingAnnualDividendYield,
+                beta: cached.beta
             };
         }
 
@@ -98,7 +127,16 @@ class PriceUpdateService {
                     change: previousCached.change,
                     changePercent: previousCached.changePercent,
                     cached: true,
-                    timestamp: previousCached.timestamp
+                    timestamp: previousCached.timestamp,
+                    marketCap: previousCached.marketCap,
+                    trailingPE: previousCached.trailingPE,
+                    forwardPE: previousCached.forwardPE,
+                    priceToBook: previousCached.priceToBook,
+                    sharesOutstanding: previousCached.sharesOutstanding,
+                    bookValue: previousCached.bookValue,
+                    epsTrailingTwelveMonths: previousCached.epsTrailingTwelveMonths,
+                    trailingAnnualDividendYield: previousCached.trailingAnnualDividendYield,
+                    beta: previousCached.beta
                 };
             }
             // If no cached data available, continue to fetch fresh data
@@ -135,7 +173,16 @@ class PriceUpdateService {
                 marketState: data.marketState,
                 currency: data.currency,
                 shortName: data.shortName,
-                longName: data.longName
+                longName: data.longName,
+                marketCap: data.marketCap,
+                trailingPE: data.trailingPE,
+                forwardPE: data.forwardPE,
+                priceToBook: data.priceToBook,
+                sharesOutstanding: data.sharesOutstanding,
+                bookValue: data.bookValue,
+                epsTrailingTwelveMonths: data.epsTrailingTwelveMonths,
+                trailingAnnualDividendYield: data.trailingAnnualDividendYield,
+                beta: data.beta
             });
 
             return {
@@ -145,7 +192,16 @@ class PriceUpdateService {
                 change: data.regularMarketChange,
                 changePercent: data.regularMarketChangePercent,
                 cached: false,
-                timestamp: fetchTimestamp
+                timestamp: fetchTimestamp,
+                marketCap: data.marketCap,
+                trailingPE: data.trailingPE,
+                forwardPE: data.forwardPE,
+                priceToBook: data.priceToBook,
+                sharesOutstanding: data.sharesOutstanding,
+                bookValue: data.bookValue,
+                epsTrailingTwelveMonths: data.epsTrailingTwelveMonths,
+                trailingAnnualDividendYield: data.trailingAnnualDividendYield,
+                beta: data.beta
             };
 
         } catch (error) {
@@ -193,7 +249,16 @@ class PriceUpdateService {
                     change: cached.change,
                     changePercent: cached.changePercent,
                     cached: true,
-                    timestamp: cached.timestamp
+                    timestamp: cached.timestamp,
+                    marketCap: cached.marketCap,
+                    trailingPE: cached.trailingPE,
+                    forwardPE: cached.forwardPE,
+                    priceToBook: cached.priceToBook,
+                    sharesOutstanding: cached.sharesOutstanding,
+                    bookValue: cached.bookValue,
+                    epsTrailingTwelveMonths: cached.epsTrailingTwelveMonths,
+                    trailingAnnualDividendYield: cached.trailingAnnualDividendYield,
+                    beta: cached.beta
                 });
             } else {
                 uncachedSymbols.push(symbol);
@@ -219,7 +284,16 @@ class PriceUpdateService {
                         change: previousCached.change,
                         changePercent: previousCached.changePercent,
                         cached: true,
-                        timestamp: previousCached.timestamp
+                        timestamp: previousCached.timestamp,
+                        marketCap: previousCached.marketCap,
+                        trailingPE: previousCached.trailingPE,
+                        forwardPE: previousCached.forwardPE,
+                        priceToBook: previousCached.priceToBook,
+                        sharesOutstanding: previousCached.sharesOutstanding,
+                        bookValue: previousCached.bookValue,
+                        epsTrailingTwelveMonths: previousCached.epsTrailingTwelveMonths,
+                        trailingAnnualDividendYield: previousCached.trailingAnnualDividendYield,
+                        beta: previousCached.beta
                     });
                 } else {
                     // No cached data available, add to fetch list
@@ -269,7 +343,16 @@ class PriceUpdateService {
                                 marketState: quote.marketState,
                                 currency: quote.currency,
                                 shortName: quote.shortName,
-                                longName: quote.longName
+                                longName: quote.longName,
+                                marketCap: quote.marketCap,
+                                trailingPE: quote.trailingPE,
+                                forwardPE: quote.forwardPE,
+                                priceToBook: quote.priceToBook,
+                                sharesOutstanding: quote.sharesOutstanding,
+                                bookValue: quote.bookValue,
+                                epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
+                                trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
+                                beta: quote.beta
                             });
 
                             results.push({
@@ -279,7 +362,16 @@ class PriceUpdateService {
                                 change: quote.regularMarketChange,
                                 changePercent: quote.regularMarketChangePercent,
                                 cached: false,
-                                timestamp: fetchTimestamp
+                                timestamp: fetchTimestamp,
+                                marketCap: quote.marketCap,
+                                trailingPE: quote.trailingPE,
+                                forwardPE: quote.forwardPE,
+                                priceToBook: quote.priceToBook,
+                                sharesOutstanding: quote.sharesOutstanding,
+                                bookValue: quote.bookValue,
+                                epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
+                                trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
+                                beta: quote.beta
                             });
                         }
                     }

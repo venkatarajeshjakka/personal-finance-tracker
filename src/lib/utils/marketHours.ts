@@ -120,9 +120,16 @@ export function getMarketStatus(date: Date = new Date()): MarketStatus {
 function getNextMarketOpenTime(date: Date): Date {
   const nextOpen = new Date(date);
   
+  // Check if market is currently open by calculating directly (avoid circular dependency)
+  const currentTime = date.getHours() * 60 + date.getMinutes();
+  const marketOpenTime = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE;
+  const marketCloseTime = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE;
+  
+  const isCurrentlyOpen = !isWeekend(date) && !isMarketHoliday(date) && 
+                         currentTime >= marketOpenTime && currentTime < marketCloseTime;
+  
   // If market is currently open, return tomorrow's open time
-  const status = getMarketStatus(date);
-  if (status.isOpen) {
+  if (isCurrentlyOpen) {
     nextOpen.setDate(nextOpen.getDate() + 1);
   }
 
@@ -141,12 +148,16 @@ function getNextMarketOpenTime(date: Date): Date {
 function getNextMarketCloseTime(date: Date): Date {
   const nextClose = new Date(date);
   
+  // Check if market is currently open by calculating directly (avoid circular dependency)
+  const currentTime = date.getHours() * 60 + date.getMinutes();
+  const marketOpenTime = MARKET_OPEN_HOUR * 60 + MARKET_OPEN_MINUTE;
+  const marketCloseTime = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE;
+  
+  const isCurrentlyOpen = !isWeekend(date) && !isMarketHoliday(date) && 
+                         currentTime >= marketOpenTime && currentTime < marketCloseTime;
+  
   // If market is closed, return today's close time if it's a trading day
-  const status = getMarketStatus(date);
-  if (!status.isOpen && !isWeekend(date) && !isMarketHoliday(date)) {
-    const currentTime = date.getHours() * 60 + date.getMinutes();
-    const marketCloseTime = MARKET_CLOSE_HOUR * 60 + MARKET_CLOSE_MINUTE;
-    
+  if (!isCurrentlyOpen && !isWeekend(date) && !isMarketHoliday(date)) {
     if (currentTime < marketCloseTime) {
       nextClose.setHours(MARKET_CLOSE_HOUR, MARKET_CLOSE_MINUTE, 0, 0);
       return nextClose;

@@ -40,7 +40,17 @@ export async function GET(
             'regularMarketVolume',
             'currency',
             'shortName',
-            'longName'
+            'longName',
+            // Financial metrics
+            'marketCap',
+            'trailingPE',
+            'forwardPE',
+            'priceToBook',
+            'sharesOutstanding',
+            'bookValue',
+            'epsTrailingTwelveMonths',
+            'trailingAnnualDividendYield',
+            'beta'
           ]
         });
 
@@ -63,14 +73,24 @@ export async function GET(
           regularMarketVolume: quote.regularMarketVolume || 0,
           currency: quote.currency || 'INR',
           shortName: quote.shortName || '',
-          longName: quote.longName || ''
+          longName: quote.longName || '',
+          // Financial metrics
+          marketCap: quote.marketCap || null,
+          trailingPE: quote.trailingPE || null,
+          forwardPE: quote.forwardPE || null,
+          priceToBook: quote.priceToBook || null,
+          sharesOutstanding: quote.sharesOutstanding || null,
+          bookValue: quote.bookValue || null,
+          epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths || null,
+          trailingAnnualDividendYield: quote.trailingAnnualDividendYield || null,
+          beta: quote.beta || null
         };
 
         return NextResponse.json(transformedQuote);
       } catch (error) {
         lastError = error as Error;
         retryCount++;
-        
+
         if (retryCount < maxRetries) {
           // Wait before retrying (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
@@ -80,9 +100,9 @@ export async function GET(
 
     // If all retries failed, return error
     console.error(`Failed to fetch quote for ${formattedSymbol} after ${maxRetries} retries:`, lastError);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch stock quote',
         details: lastError?.message || 'Unknown error',
         symbol: formattedSymbol
@@ -93,7 +113,7 @@ export async function GET(
   } catch (error) {
     console.error('Error in stock quote API:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
