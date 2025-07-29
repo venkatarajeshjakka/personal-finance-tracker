@@ -6,6 +6,9 @@ export interface CompanyFinancials {
   price: string;
   market_cap: string;
   PE_ratio: string;
+  // Company Profile
+  industry?: string;
+  sector?: string;
   financials: {
     YOY: {
       sales_growth: string;

@@ -21,6 +21,9 @@ interface CachedPrice {
     epsTrailingTwelveMonths?: number | null;
     trailingAnnualDividendYield?: number | null;
     beta?: number | null;
+    //Company Profile
+    industry?: string;
+    sector?: string;
 }
 
 interface PriceUpdateResult {
@@ -42,6 +45,10 @@ interface PriceUpdateResult {
     epsTrailingTwelveMonths?: number | null;
     trailingAnnualDividendYield?: number | null;
     beta?: number | null;
+
+    //Company Profile
+    industry?: string;
+    sector?: string;
 }
 
 interface BulkPriceUpdateResult {
@@ -107,7 +114,9 @@ class PriceUpdateService {
                 bookValue: cached.bookValue,
                 epsTrailingTwelveMonths: cached.epsTrailingTwelveMonths,
                 trailingAnnualDividendYield: cached.trailingAnnualDividendYield,
-                beta: cached.beta
+                beta: cached.beta,
+                industry: cached.industry,
+                sector: cached.sector
             };
         }
 
@@ -136,7 +145,9 @@ class PriceUpdateService {
                     bookValue: previousCached.bookValue,
                     epsTrailingTwelveMonths: previousCached.epsTrailingTwelveMonths,
                     trailingAnnualDividendYield: previousCached.trailingAnnualDividendYield,
-                    beta: previousCached.beta
+                    beta: previousCached.beta,
+                    industry: previousCached.industry,
+                    sector: previousCached.sector
                 };
             }
             // If no cached data available, continue to fetch fresh data
@@ -182,7 +193,9 @@ class PriceUpdateService {
                 bookValue: data.bookValue,
                 epsTrailingTwelveMonths: data.epsTrailingTwelveMonths,
                 trailingAnnualDividendYield: data.trailingAnnualDividendYield,
-                beta: data.beta
+                beta: data.beta,
+                industry: data.industry,
+                sector: data.sector
             });
 
             return {
@@ -201,7 +214,9 @@ class PriceUpdateService {
                 bookValue: data.bookValue,
                 epsTrailingTwelveMonths: data.epsTrailingTwelveMonths,
                 trailingAnnualDividendYield: data.trailingAnnualDividendYield,
-                beta: data.beta
+                beta: data.beta,
+                industry: data.industry,
+                sector: data.sector
             };
 
         } catch (error) {
@@ -258,7 +273,9 @@ class PriceUpdateService {
                     bookValue: cached.bookValue,
                     epsTrailingTwelveMonths: cached.epsTrailingTwelveMonths,
                     trailingAnnualDividendYield: cached.trailingAnnualDividendYield,
-                    beta: cached.beta
+                    beta: cached.beta,
+                    industry: cached.industry,
+                    sector: cached.sector
                 });
             } else {
                 uncachedSymbols.push(symbol);
@@ -293,7 +310,10 @@ class PriceUpdateService {
                         bookValue: previousCached.bookValue,
                         epsTrailingTwelveMonths: previousCached.epsTrailingTwelveMonths,
                         trailingAnnualDividendYield: previousCached.trailingAnnualDividendYield,
-                        beta: previousCached.beta
+                        beta: previousCached.beta,
+                        industry: previousCached.industry,
+                        sector: previousCached.sector
+                        
                     });
                 } else {
                     // No cached data available, add to fetch list
@@ -352,7 +372,9 @@ class PriceUpdateService {
                                 bookValue: quote.bookValue,
                                 epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
                                 trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
-                                beta: quote.beta
+                                beta: quote.beta,
+                                industry: quote.industry,
+                                sector: quote.sector
                             });
 
                             results.push({
@@ -371,7 +393,9 @@ class PriceUpdateService {
                                 bookValue: quote.bookValue,
                                 epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
                                 trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
-                                beta: quote.beta
+                                beta: quote.beta,
+                                industry: quote.industry,
+                                sector: quote.sector
                             });
                         }
                     }

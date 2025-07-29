@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Format symbols with .NS suffix for NSE
-    const formattedSymbols = symbols.map(symbol => 
+    const formattedSymbols = symbols.map(symbol =>
       symbol.includes('.') ? symbol : `${symbol}.NS`
     );
 
@@ -37,72 +37,48 @@ export async function POST(request: NextRequest) {
     const batchSize = 10;
     for (let i = 0; i < formattedSymbols.length; i += batchSize) {
       const batch = formattedSymbols.slice(i, i + batchSize);
-      
+
       // Process each symbol in the batch with retry logic
       const batchPromises = batch.map(async (symbol) => {
         let retryCount = 0;
         const maxRetries = 2; // Reduced retries for batch processing
-        
+
         while (retryCount < maxRetries) {
           try {
-            const quote = await yahooFinance.quote(symbol, {
-              fields: [
-                'symbol',
-                'regularMarketPrice',
-                'regularMarketChange',
-                'regularMarketChangePercent',
-                'regularMarketTime',
-                'marketState',
-                'regularMarketPreviousClose',
-                'regularMarketOpen',
-                'regularMarketDayHigh',
-                'regularMarketDayLow',
-                'regularMarketVolume',
-                'currency',
-                'shortName',
-                'longName',
-                // Financial metrics
-                'marketCap',
-                'trailingPE',
-                'forwardPE',
-                'priceToBook',
-                'sharesOutstanding',
-                'bookValue',
-                'epsTrailingTwelveMonths',
-                'trailingAnnualDividendYield',
-                'beta'
-              ]
-            });
+            const quote = await yahooFinance.quoteSummary(symbol, { modules: ["price", "summaryDetail", "defaultKeyStatistics", "summaryProfile"] })
 
             if (!quote) {
               throw new Error('No quote data received');
             }
 
             return {
-              symbol: quote.symbol || symbol,
-              regularMarketPrice: quote.regularMarketPrice || 0,
-              regularMarketChange: quote.regularMarketChange || 0,
-              regularMarketChangePercent: quote.regularMarketChangePercent || 0,
-              regularMarketTime: quote.regularMarketTime || Date.now() / 1000,
-              marketState: quote.marketState || 'UNKNOWN',
-              regularMarketPreviousClose: quote.regularMarketPreviousClose || 0,
-              regularMarketOpen: quote.regularMarketOpen || 0,
-              regularMarketDayHigh: quote.regularMarketDayHigh || 0,
-              regularMarketDayLow: quote.regularMarketDayLow || 0,
-              regularMarketVolume: quote.regularMarketVolume || 0,
-              currency: quote.currency || 'INR',
-              shortName: quote.shortName || '',
-              longName: quote.longName || '',
+              symbol: quote.price?.symbol || symbol,
+              regularMarketPrice: quote.price?.regularMarketPrice || 0,
+              regularMarketChange: quote.price?.regularMarketChange || 0,
+              regularMarketChangePercent: quote.price?.regularMarketChangePercent || 0,
+              regularMarketTime: quote.price?.regularMarketTime || Date.now() / 1000,
+              marketState: quote.price?.marketState || 'UNKNOWN',
+              regularMarketPreviousClose: quote.price?.regularMarketPreviousClose || 0,
+              regularMarketOpen: quote.price?.regularMarketOpen || 0,
+              regularMarketDayHigh: quote.price?.regularMarketDayHigh || 0,
+              regularMarketDayLow: quote.price?.regularMarketDayLow || 0,
+              regularMarketVolume: quote.price?.regularMarketVolume || 0,
+              currency: quote.price?.currency || 'INR',
+              shortName: quote.price?.shortName || '',
+              longName: quote.price?.longName || '',
               // Financial metrics
-              marketCap: quote.marketCap || null,
-              trailingPE: quote.trailingPE || null,
-              forwardPE: quote.forwardPE || null,
-              priceToBook: quote.priceToBook || null,
-              sharesOutstanding: quote.sharesOutstanding || null,
-              bookValue: quote.bookValue || null,
-              epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths || null,
-              trailingAnnualDividendYield: quote.trailingAnnualDividendYield || null,
-              beta: quote.beta || null
+              marketCap: quote.price?.marketCap || null,
+              trailingPE: quote.summaryDetail?.trailingPE || null,
+              forwardPE: quote.summaryDetail?.forwardPE || null,
+              priceToBook: quote.defaultKeyStatistics?.priceToBook || null,
+              sharesOutstanding: quote.defaultKeyStatistics?.sharesOutstanding || null,
+              bookValue: quote.defaultKeyStatistics?.bookValue || null,
+              epsTrailingTwelveMonths: quote.defaultKeyStatistics?.trailingEps || null,
+              trailingAnnualDividendYield: null,
+              beta: quote.summaryDetail?.beta || null,
+              //Company Profile
+              industry: quote.summaryProfile?.industry,
+              sector: quote.summaryProfile?.sector
             };
           } catch (error) {
             retryCount++;
@@ -140,7 +116,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in bulk stock quotes API:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

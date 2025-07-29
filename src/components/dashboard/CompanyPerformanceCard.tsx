@@ -28,6 +28,8 @@ export function CompanyPerformanceCard({
     trailingPE?: number | null;
     forwardPE?: number | null;
     priceToBook?: number | null;
+    industry?: string;
+    sector?: string;
   } | null>(null);
 
   // Handle price and financial metrics updates from StockPrice component
@@ -36,6 +38,8 @@ export function CompanyPerformanceCard({
     trailingPE?: number | null;
     forwardPE?: number | null;
     priceToBook?: number | null;
+    industry?: string;
+    sector?: string;
   }) => {
     if (financialMetrics) {
       setLiveMetrics(financialMetrics);
@@ -120,11 +124,36 @@ export function CompanyPerformanceCard({
           </CardTitle>
           <Badge variant="secondary">{quarterKey}</Badge>
         </div>
+
+        {/* Industry and Sector Tags */}
+        {(() => {
+          // Use live data if available, otherwise fall back to static data
+          const displaySector = liveMetrics?.sector || company.sector;
+          const displayIndustry = liveMetrics?.industry || company.industry;
+
+          if (displaySector || displayIndustry) {
+            return (
+              <div className="flex gap-2 mt-2">
+                {displaySector && (
+                  <Badge variant="outline" className="text-xs">
+                    {displaySector}
+                  </Badge>
+                )}
+                {displayIndustry && (
+                  <Badge variant="outline" className="text-xs">
+                    {displayIndustry}
+                  </Badge>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })()}
         <div className="space-y-2">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Data Price: {formatCurrency(company.price)}</span>
             <span>P/E: {formatLivePE(liveMetrics?.trailingPE)}</span>
-            <span>MCap: {formatLiveMarketCap(liveMetrics?.marketCap)}</span>            
+            <span>MCap: {formatLiveMarketCap(liveMetrics?.marketCap)}</span>
           </div>
 
           {/* Real-time Stock Price */}
@@ -244,7 +273,7 @@ export function CompanyPerformanceCard({
                 className={`${category.color} ${category.bgColor} border-current text-sm px-3 py-1`}
               >
                 {category.label}
-                
+
               </Badge>
             );
           })()}

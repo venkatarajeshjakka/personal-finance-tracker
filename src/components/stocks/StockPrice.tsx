@@ -19,6 +19,8 @@ interface StockPriceProps {
         trailingPE?: number | null;
         forwardPE?: number | null;
         priceToBook?: number | null;
+        industry?: string;
+        sector?: string;
     }) => void;
     onError?: (error: string) => void;
 }
@@ -34,6 +36,9 @@ interface PriceData {
     trailingPE?: number | null;
     forwardPE?: number | null;
     priceToBook?: number | null;
+    // Company profile
+    industry?: string;
+    sector?: string;
 }
 
 const StockPrice: React.FC<StockPriceProps> = ({
@@ -79,7 +84,9 @@ const StockPrice: React.FC<StockPriceProps> = ({
                     marketCap: result.marketCap,
                     trailingPE: result.trailingPE,
                     forwardPE: result.forwardPE,
-                    priceToBook: result.priceToBook
+                    priceToBook: result.priceToBook,
+                    industry: result.industry,
+                    sector: result.sector
                 };
 
                 setPriceData(newPriceData);
@@ -89,7 +96,9 @@ const StockPrice: React.FC<StockPriceProps> = ({
                         marketCap: newPriceData.marketCap,
                         trailingPE: newPriceData.trailingPE,
                         forwardPE: newPriceData.forwardPE,
-                        priceToBook: newPriceData.priceToBook
+                        priceToBook: newPriceData.priceToBook,
+                        industry: newPriceData.industry,
+                        sector: newPriceData.sector
                     });
                 }
             } else {
