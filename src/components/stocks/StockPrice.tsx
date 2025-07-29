@@ -14,7 +14,12 @@ interface StockPriceProps {
     showRefresh?: boolean;
     autoRefresh?: boolean;
     size?: 'sm' | 'md' | 'lg';
-    onPriceUpdate?: (price: number, change: number, changePercent: number) => void;
+    onPriceUpdate?: (price: number, change: number, changePercent: number, financialMetrics?: {
+        marketCap?: number | null;
+        trailingPE?: number | null;
+        forwardPE?: number | null;
+        priceToBook?: number | null;
+    }) => void;
     onError?: (error: string) => void;
 }
 
@@ -24,6 +29,11 @@ interface PriceData {
     changePercent: number;
     cached: boolean;
     timestamp: Date;
+    // Financial metrics
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
 }
 
 const StockPrice: React.FC<StockPriceProps> = ({
@@ -65,13 +75,22 @@ const StockPrice: React.FC<StockPriceProps> = ({
                     change: result.change || 0,
                     changePercent: result.changePercent || 0,
                     cached: result.cached || false,
-                    timestamp: result.timestamp ? new Date(result.timestamp) : new Date()
+                    timestamp: result.timestamp ? new Date(result.timestamp) : new Date(),
+                    marketCap: result.marketCap,
+                    trailingPE: result.trailingPE,
+                    forwardPE: result.forwardPE,
+                    priceToBook: result.priceToBook
                 };
 
                 setPriceData(newPriceData);
 
                 if (onPriceUpdate) {
-                    onPriceUpdate(newPriceData.price, newPriceData.change, newPriceData.changePercent);
+                    onPriceUpdate(newPriceData.price, newPriceData.change, newPriceData.changePercent, {
+                        marketCap: newPriceData.marketCap,
+                        trailingPE: newPriceData.trailingPE,
+                        forwardPE: newPriceData.forwardPE,
+                        priceToBook: newPriceData.priceToBook
+                    });
                 }
             } else {
                 const errorMsg = result.error || 'Failed to fetch price';

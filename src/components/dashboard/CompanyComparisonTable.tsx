@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CompanyFinancials } from "@/types";
 import { formatCurrency, formatPercentage, getGrowthColorClass, parseGrowthValue, getMarketCapCategory } from "@/lib/utils/quarterUtils";
 import { ArrowUpDown, ArrowUp, ArrowDown, Building2 } from "lucide-react";
+import PriceUpdateService from "@/lib/services/priceUpdateService";
 
 interface CompanyComparisonTableProps {
   companies: CompanyFinancials[];
@@ -25,7 +26,88 @@ export function CompanyComparisonTable({
   const [sortField, setSortField] = useState<SortField>('sales');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
+  // State to track live financial metrics for multiple companies
+  const [liveMetrics, setLiveMetrics] = useState<Record<string, {
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+  }>>({});
+
   const quarterKey = `${selectedQuarter} ${selectedYear}`;
+
+  // Fetch live financial metrics for companies with symbols
+  useEffect(() => {
+    const fetchLiveMetrics = async () => {
+      const companiesWithSymbols = companies.filter(company => company.symbol);
+
+      if (companiesWithSymbols.length === 0) return;
+
+      try {
+        const symbols = companiesWithSymbols.map(company => company.symbol!);
+        const results = await PriceUpdateService.getBulkStockPrices(symbols);
+
+        const newLiveMetrics: Record<string, {
+          marketCap?: number | null;
+          trailingPE?: number | null;
+          forwardPE?: number | null;
+          priceToBook?: number | null;
+        }> = {};
+
+        results.results.forEach(result => {
+          if (result.success && result.symbol) {
+            newLiveMetrics[result.symbol] = {
+              marketCap: result.marketCap,
+              trailingPE: result.trailingPE,
+              forwardPE: result.forwardPE,
+              priceToBook: result.priceToBook
+            };
+          }
+        });
+
+        setLiveMetrics(newLiveMetrics);
+      } catch (error) {
+        console.error('Failed to fetch live financial metrics:', error);
+      }
+    };
+
+    fetchLiveMetrics();
+  }, [companies]);
+
+  // Format market cap for display
+  const formatLiveMarketCap = (company: CompanyFinancials): string => {
+    if (!company.symbol) return company.market_cap || 'N/A';
+
+    const formattedSymbol = company.symbol.includes('.') ? company.symbol.toUpperCase() : `${company.symbol.toUpperCase()}.NS`;
+    const liveData = liveMetrics[formattedSymbol];
+
+    if (liveData?.marketCap && liveData.marketCap > 0) {
+      // Convert to crores for Indian market display
+      const crores = liveData.marketCap / 10000000; // 1 crore = 10 million
+      return `₹${crores.toFixed(2)}Cr`;
+    }
+    return company.market_cap || 'N/A';
+  };
+
+  // Format P/E ratio for display
+  const formatLivePE = (company: CompanyFinancials): string => {
+    if (!company.symbol) return company.PE_ratio || 'N/A';
+
+    const formattedSymbol = company.symbol.includes('.') ? company.symbol.toUpperCase() : `${company.symbol.toUpperCase()}.NS`;
+    const liveData = liveMetrics[formattedSymbol];
+
+    if (liveData?.trailingPE && liveData.trailingPE > 0) {
+      return liveData.trailingPE.toFixed(1);
+    }
+    return company.PE_ratio || 'N/A';
+  };
+
+  // Check if company has live data
+  const hasLiveData = (company: CompanyFinancials): boolean => {
+    if (!company.symbol) return false;
+    const formattedSymbol = company.symbol.includes('.') ? company.symbol.toUpperCase() : `${company.symbol.toUpperCase()}.NS`;
+    return !!(liveMetrics[formattedSymbol]);
+  };
 
   // Filter companies that have data for the selected quarter
   const companiesWithData = companies.filter(company =>
@@ -172,20 +254,39 @@ export function CompanyComparisonTable({
                 return (
                   <tr key={company.id} className={`border-b hover:bg-muted/50 ${index % 2 === 0 ? 'bg-muted/20' : ''}`}>
                     <td className="p-2">
-                      <div>
+                      <div className="space-y-2">
                         <div className="font-medium">{company.company}</div>
-                        <div className="text-xs text-muted-foreground mb-1">
-                          {formatCurrency(company.price)} • P/E: {company.PE_ratio} • MCap: {formatCurrency(company.market_cap)}
+
+                        {/* Financial metrics info */}
+                        <div className="text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>P/E: {formatLivePE(company)}</span>
+                            <span>•</span>
+                            <span>MCap: {formatLiveMarketCap(company)}</span>
+                            
+                          </div>
+                          <div className="mt-1 text-muted-foreground/70">
+                            Data Price: {formatCurrency(company.price)}
+                          </div>
                         </div>
+
+
+
+                        {/* Market cap category */}
                         <div>
                           {(() => {
-                            const category = getMarketCapCategory(company.market_cap);
+                            // Use live market cap if available, otherwise fall back to static data
+                            const marketCapToUse = hasLiveData(company)
+                              ? formatLiveMarketCap(company)
+                              : company.market_cap;
+                            const category = getMarketCapCategory(marketCapToUse);
                             return (
                               <Badge
                                 variant="outline"
                                 className={`${category.color} ${category.bgColor} border-current text-xs px-2 py-0.5`}
                               >
                                 {category.label}
+                               
                               </Badge>
                             );
                           })()}

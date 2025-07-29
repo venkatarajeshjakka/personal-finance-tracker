@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompanyFinancials, QuarterData } from "@/types";
@@ -13,14 +14,34 @@ interface CompanyPerformanceCardProps {
   selectedYear: number;
 }
 
-export function CompanyPerformanceCard({ 
-  company, 
-  selectedQuarter, 
-  selectedYear 
+export function CompanyPerformanceCard({
+  company,
+  selectedQuarter,
+  selectedYear
 }: CompanyPerformanceCardProps) {
   const quarterKey = `${selectedQuarter} ${selectedYear}`;
   const quarterData = company.financials.quarters[quarterKey];
-  
+
+  // State to track live financial metrics
+  const [liveMetrics, setLiveMetrics] = useState<{
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+  } | null>(null);
+
+  // Handle price and financial metrics updates from StockPrice component
+  const handlePriceUpdate = (_price: number, _change: number, _changePercent: number, financialMetrics?: {
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+  }) => {
+    if (financialMetrics) {
+      setLiveMetrics(financialMetrics);
+    }
+  };
+
   // Get previous quarter data for comparison
   const getPreviousQuarterData = (): QuarterData | null => {
     const quarters = Object.keys(company.financials.quarters).sort();
@@ -44,6 +65,26 @@ export function CompanyPerformanceCard({
     if (!previous) return "N/A";
     const growth = ((current - previous) / previous) * 100;
     return `${growth > 0 ? '+' : ''}${growth.toFixed(2)}%`;
+  };
+
+  // Format market cap for display
+  const formatLiveMarketCap = (marketCap?: number | null): string => {
+    if (!marketCap || marketCap === 0) {
+      return company.market_cap || 'N/A';
+    }
+
+    // Convert to crores for Indian market display
+    const crores = marketCap / 10000000; // 1 crore = 10 million
+    return `₹${crores.toFixed(2)}Cr`;
+  };
+
+  // Format P/E ratio for display
+  const formatLivePE = (pe?: number | null): string => {
+    if (!pe || pe === 0) {
+      return company.PE_ratio || 'N/A';
+    }
+
+    return pe.toFixed(1);
   };
 
   if (!quarterData) {
@@ -82,10 +123,10 @@ export function CompanyPerformanceCard({
         <div className="space-y-2">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Data Price: {formatCurrency(company.price)}</span>
-            <span>P/E: {company.PE_ratio}</span>
-            <span>MCap: {formatCurrency(company.market_cap)}</span>
+            <span>P/E: {formatLivePE(liveMetrics?.trailingPE)}</span>
+            <span>MCap: {formatLiveMarketCap(liveMetrics?.marketCap)}</span>            
           </div>
-          
+
           {/* Real-time Stock Price */}
           {company.symbol && (
             <div className="p-2 bg-muted/50 rounded-md">
@@ -97,12 +138,13 @@ export function CompanyPerformanceCard({
                 showRefresh={false}
                 size="sm"
                 className="text-sm"
+                onPriceUpdate={handlePriceUpdate}
               />
             </div>
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Key Metrics */}
         <div className="grid grid-cols-2 gap-4">
@@ -115,7 +157,7 @@ export function CompanyPerformanceCard({
               </p>
             )}
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">EBIDT</p>
             <p className="text-xl font-semibold">{formatCurrency(quarterData.EBIDT)}</p>
@@ -125,7 +167,7 @@ export function CompanyPerformanceCard({
               </p>
             )}
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Net Profit</p>
             <p className="text-xl font-semibold">{formatCurrency(quarterData.net_profit)}</p>
@@ -135,7 +177,7 @@ export function CompanyPerformanceCard({
               </p>
             )}
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">EPS</p>
             <p className="text-xl font-semibold">{quarterData.EPS}</p>
@@ -155,7 +197,7 @@ export function CompanyPerformanceCard({
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">EBIDT</span>
               <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.EBIDT_growth)}`}>
@@ -165,7 +207,7 @@ export function CompanyPerformanceCard({
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Profit</span>
               <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.net_profit_growth)}`}>
@@ -175,7 +217,7 @@ export function CompanyPerformanceCard({
                 </span>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">EPS</span>
               <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.EPS_growth)}`}>
@@ -191,13 +233,18 @@ export function CompanyPerformanceCard({
         {/* Market Cap Category Badge */}
         <div className="border-t pt-3">
           {(() => {
-            const category = getMarketCapCategory(company.market_cap);
+            // Use live market cap if available, otherwise fall back to static data
+            const marketCapToUse = liveMetrics?.marketCap
+              ? formatLiveMarketCap(liveMetrics.marketCap)
+              : company.market_cap;
+            const category = getMarketCapCategory(marketCapToUse);
             return (
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={`${category.color} ${category.bgColor} border-current text-sm px-3 py-1`}
               >
                 {category.label}
+                
               </Badge>
             );
           })()}

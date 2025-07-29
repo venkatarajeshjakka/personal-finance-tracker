@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, Building2, Calendar } from 'lucide-react';
 import { CompanyFinancials } from '@/types';
 import { cn } from '@/lib/utils';
@@ -24,10 +24,30 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
   const quarterKey = `${selectedQuarter}_${selectedYear}`;
   const quarterData = company.financials.quarters[quarterKey];
 
+  // State to track live financial metrics
+  const [liveMetrics, setLiveMetrics] = useState<{
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+  } | null>(null);
+
+  // Handle price and financial metrics updates from StockPrice component
+  const handlePriceUpdate = (_price: number, _change: number, _changePercent: number, financialMetrics?: {
+    marketCap?: number | null;
+    trailingPE?: number | null;
+    forwardPE?: number | null;
+    priceToBook?: number | null;
+  }) => {
+    if (financialMetrics) {
+      setLiveMetrics(financialMetrics);
+    }
+  };
+
   const formatCurrency = (value: number | string): string => {
     const numValue = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(numValue)) return '₹0';
-    
+
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -39,7 +59,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
   const formatPercentage = (value: string): string => {
     const numValue = parseFloat(value);
     if (isNaN(numValue)) return '0%';
-    
+
     const sign = numValue >= 0 ? '+' : '';
     return `${sign}${numValue.toFixed(1)}%`;
   };
@@ -54,6 +74,26 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
     const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue === 0) return null;
     return numValue > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />;
+  };
+
+  // Format market cap for display
+  const formatMarketCap = (marketCap?: number | null): string => {
+    if (!marketCap || marketCap === 0) {
+      return company.market_cap || 'N/A';
+    }
+
+    // Convert to crores for Indian market display
+    const crores = marketCap / 10000000; // 1 crore = 10 million
+    return `₹${crores.toFixed(2)}Cr`;
+  };
+
+  // Format P/E ratio for display
+  const formatPE = (pe?: number | null): string => {
+    if (!pe || pe === 0) {
+      return company.PE_ratio || 'N/A';
+    }
+
+    return pe.toFixed(1);
   };
 
   return (
@@ -97,6 +137,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
             showRefresh={true}
             size="md"
             className="font-medium"
+            onPriceUpdate={handlePriceUpdate}
           />
         </div>
       )}
@@ -108,7 +149,12 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
           ₹{parseFloat(company.price || '0').toFixed(2)}
         </div>
         <div className="text-sm text-blue-700">
-          Market Cap: {company.market_cap} | PE: {company.PE_ratio}
+          Market Cap: {formatMarketCap(liveMetrics?.marketCap)} | PE: {formatPE(liveMetrics?.trailingPE)}
+          {liveMetrics && (
+            <span className="ml-2 text-xs bg-green-100 text-green-700 px-1 rounded">
+              Live
+            </span>
+          )}
         </div>
       </div>
 
