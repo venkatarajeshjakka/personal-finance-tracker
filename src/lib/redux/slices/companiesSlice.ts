@@ -149,6 +149,21 @@ export const importCompanyData = createAsyncThunk(
   }
 );
 
+export const importCompanyDataFromJSON = createAsyncThunk(
+  'companies/importCompanyDataFromJSON',
+  async (jsonData: string, { rejectWithValue }) => {
+    try {
+      const result = await StorageService.importCompanyData(jsonData);
+      if (!result.isValid) {
+        return rejectWithValue(result.errors.join(', '));
+      }
+      return result.data || [];
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to import company data from JSON');
+    }
+  }
+);
+
 export const importCompaniesWithProcessing = createAsyncThunk(
   'companies/importCompaniesWithProcessing',
   async (
@@ -287,6 +302,29 @@ const companiesSlice = createSlice({
       .addCase(importCompanyData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string || 'Failed to import company data';
+      })
+      // Import company data from JSON
+      .addCase(importCompanyDataFromJSON.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(importCompanyDataFromJSON.fulfilled, (state, action) => {
+        state.loading = false;
+        const companies = action.payload;
+        
+        // Add or update companies in state
+        companies.forEach(company => {
+          const existingIndex = state.data.findIndex(c => c.id === company.id);
+          if (existingIndex !== -1) {
+            state.data[existingIndex] = company;
+          } else {
+            state.data.push(company);
+          }
+        });
+      })
+      .addCase(importCompanyDataFromJSON.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || 'Failed to import company data from JSON';
       })
       // Bulk delete companies
       .addCase(bulkDeleteCompanies.pending, (state) => {

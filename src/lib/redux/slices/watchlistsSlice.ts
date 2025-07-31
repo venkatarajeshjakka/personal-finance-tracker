@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { Watchlist, WatchlistsState } from '@/types';
+import { Watchlist, WatchlistStock, WatchlistsState } from '@/types';
 import { StorageService } from '@/lib/storage';
 
 // Async thunks for watchlist operations
@@ -26,21 +26,27 @@ export const deleteWatchlist = createAsyncThunk(
   }
 );
 
-export const addSymbolToWatchlist = createAsyncThunk(
-  'watchlists/addSymbolToWatchlist',
-  async ({ watchlistId, symbol }: { watchlistId: string; symbol: string }) => {
+export const addStockToWatchlist = createAsyncThunk(
+  'watchlists/addStockToWatchlist',
+  async ({ watchlistId, stock }: { watchlistId: string; stock: Omit<WatchlistStock, 'id' | 'addedAt'> }) => {
     const watchlist = StorageService.getWatchlist(watchlistId);
     if (!watchlist) {
       throw new Error('Watchlist not found');
     }
 
-    if (watchlist.symbols.includes(symbol)) {
-      throw new Error('Symbol already exists in watchlist');
+    if (watchlist.stocks.some(s => s.symbol === stock.symbol)) {
+      throw new Error('Stock already exists in watchlist');
     }
+
+    const newStock: WatchlistStock = {
+      id: `${watchlistId}-${stock.symbol}-${Date.now()}`,
+      ...stock,
+      addedAt: new Date()
+    };
 
     const updatedWatchlist: Watchlist = {
       ...watchlist,
-      symbols: [...watchlist.symbols, symbol],
+      stocks: [...watchlist.stocks, newStock],
       updatedAt: new Date()
     };
 
@@ -49,9 +55,9 @@ export const addSymbolToWatchlist = createAsyncThunk(
   }
 );
 
-export const removeSymbolFromWatchlist = createAsyncThunk(
-  'watchlists/removeSymbolFromWatchlist',
-  async ({ watchlistId, symbol }: { watchlistId: string; symbol: string }) => {
+export const removeStockFromWatchlist = createAsyncThunk(
+  'watchlists/removeStockFromWatchlist',
+  async ({ watchlistId, stockId }: { watchlistId: string; stockId: string }) => {
     const watchlist = StorageService.getWatchlist(watchlistId);
     if (!watchlist) {
       throw new Error('Watchlist not found');
@@ -59,7 +65,43 @@ export const removeSymbolFromWatchlist = createAsyncThunk(
 
     const updatedWatchlist: Watchlist = {
       ...watchlist,
-      symbols: watchlist.symbols.filter(s => s !== symbol),
+      stocks: watchlist.stocks.filter(s => s.id !== stockId),
+      updatedAt: new Date()
+    };
+
+    StorageService.saveWatchlist(updatedWatchlist);
+    return updatedWatchlist;
+  }
+);
+
+export const updateStockPrices = createAsyncThunk(
+  'watchlists/updateStockPrices',
+  async ({ watchlistId, priceUpdates }: { 
+    watchlistId: string; 
+    priceUpdates: Array<{ stockId: string; currentPrice: number; priceChange: number; priceChangePercent: number }> 
+  }) => {
+    const watchlist = StorageService.getWatchlist(watchlistId);
+    if (!watchlist) {
+      throw new Error('Watchlist not found');
+    }
+
+    const updatedStocks = watchlist.stocks.map(stock => {
+      const update = priceUpdates.find(u => u.stockId === stock.id);
+      if (update) {
+        return {
+          ...stock,
+          currentPrice: update.currentPrice,
+          priceChange: update.priceChange,
+          priceChangePercent: update.priceChangePercent,
+          lastUpdated: new Date()
+        };
+      }
+      return stock;
+    });
+
+    const updatedWatchlist: Watchlist = {
+      ...watchlist,
+      stocks: updatedStocks,
       updatedAt: new Date()
     };
 
@@ -143,37 +185,53 @@ const watchlistsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to delete watchlist';
       })
-      // Add symbol to watchlist
-      .addCase(addSymbolToWatchlist.pending, (state) => {
+      // Add stock to watchlist
+      .addCase(addStockToWatchlist.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(addSymbolToWatchlist.fulfilled, (state, action) => {
+      .addCase(addStockToWatchlist.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.data.findIndex(w => w.id === action.payload.id);
         if (index !== -1) {
           state.data[index] = action.payload;
         }
       })
-      .addCase(addSymbolToWatchlist.rejected, (state, action) => {
+      .addCase(addStockToWatchlist.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to add symbol to watchlist';
+        state.error = action.error.message || 'Failed to add stock to watchlist';
       })
-      // Remove symbol from watchlist
-      .addCase(removeSymbolFromWatchlist.pending, (state) => {
+      // Remove stock from watchlist
+      .addCase(removeStockFromWatchlist.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(removeSymbolFromWatchlist.fulfilled, (state, action) => {
+      .addCase(removeStockFromWatchlist.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.data.findIndex(w => w.id === action.payload.id);
         if (index !== -1) {
           state.data[index] = action.payload;
         }
       })
-      .addCase(removeSymbolFromWatchlist.rejected, (state, action) => {
+      .addCase(removeStockFromWatchlist.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to remove symbol from watchlist';
+        state.error = action.error.message || 'Failed to remove stock from watchlist';
+      })
+      // Update stock prices
+      .addCase(updateStockPrices.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateStockPrices.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.data.findIndex(w => w.id === action.payload.id);
+        if (index !== -1) {
+          state.data[index] = action.payload;
+        }
+      })
+      .addCase(updateStockPrices.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update stock prices';
       });
   }
 });

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompanyFinancials, QuarterData } from "@/types";
 import { formatCurrency, formatPercentage, getGrowthColorClass, getMarketCapCategory } from "@/lib/utils/quarterUtils";
-import { TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Building2, BarChart3, DollarSign, Activity } from "lucide-react";
 import StockPrice from "@/components/stocks/StockPrice";
 
 interface CompanyPerformanceCardProps {
@@ -115,51 +115,81 @@ export function CompanyPerformanceCard({
   }
 
   return (
-    <Card className="h-full hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            {company.company}
-          </CardTitle>
-          <Badge variant="secondary">{quarterKey}</Badge>
-        </div>
-
-        {/* Industry and Sector Tags */}
-        {(() => {
-          // Use live data if available, otherwise fall back to static data
-          const displaySector = liveMetrics?.sector || company.sector;
-          const displayIndustry = liveMetrics?.industry || company.industry;
-
-          if (displaySector || displayIndustry) {
-            return (
-              <div className="flex gap-2 mt-2">
-                {displaySector && (
-                  <Badge variant="outline" className="text-xs">
-                    {displaySector}
-                  </Badge>
-                )}
-                {displayIndustry && (
-                  <Badge variant="outline" className="text-xs">
-                    {displayIndustry}
-                  </Badge>
-                )}
+    <Card className="h-full hover:shadow-lg transition-all duration-300 border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
+      <CardHeader className="pb-4 space-y-3">
+        {/* Company Header */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-3 flex-1">
+            <CardTitle className="text-xl font-bold flex items-center gap-3 text-gray-900 dark:text-gray-100">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-            );
-          }
-          return null;
-        })()}
-        <div className="space-y-2">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>Data Price: {formatCurrency(company.price)}</span>
-            <span>P/E: {formatLivePE(liveMetrics?.trailingPE)}</span>
-            <span>MCap: {formatLiveMarketCap(liveMetrics?.marketCap)}</span>
+              <span className="truncate">{company.company}</span>
+            </CardTitle>
+
+            {/* Industry and Sector Tags */}
+            {(() => {
+              const displaySector = liveMetrics?.sector || company.sector;
+              const displayIndustry = liveMetrics?.industry || company.industry;
+
+              if (displaySector || displayIndustry) {
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {displaySector && (
+                      <Badge variant="secondary" className="text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-0">
+                        {displaySector}
+                      </Badge>
+                    )}
+                    {displayIndustry && (
+                      <Badge variant="secondary" className="text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-0">
+                        {displayIndustry}
+                      </Badge>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
-          {/* Real-time Stock Price */}
+          <Badge variant="outline" className="font-medium bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 ml-4">
+            {quarterKey}
+          </Badge>
+        </div>
+
+        {/* Price Information */}
+        <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-100 dark:border-gray-700/50">
+          <div className="grid grid-cols-3 gap-4 mb-3">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                <DollarSign className="h-3 w-3" />
+                Data Price
+              </div>
+              <div className="font-semibold text-sm">{formatCurrency(company.price)}</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                <BarChart3 className="h-3 w-3" />
+                P/E Ratio
+              </div>
+              <div className="font-semibold text-sm">{formatLivePE(liveMetrics?.trailingPE)}</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                <Activity className="h-3 w-3" />
+                Market Cap
+              </div>
+              <div className="font-semibold text-sm">{formatLiveMarketCap(liveMetrics?.marketCap)}</div>
+            </div>
+          </div>
+
+          {/* Live Stock Price */}
           {company.symbol && (
-            <div className="p-2 bg-muted/50 rounded-md">
-              <div className="text-xs text-muted-foreground mb-1">Live Price ({company.symbol})</div>
+            <div className="border-t border-gray-200 dark:border-gray-600 pt-3">
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                Live Price ({company.symbol})
+              </div>
               <StockPrice
                 symbol={company.symbol}
                 companyName={company.company}
@@ -174,95 +204,70 @@ export function CompanyPerformanceCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Sales</p>
-            <p className="text-xl font-semibold">{formatCurrency(quarterData.sales)}</p>
-            {previousQuarterData && (
-              <p className="text-xs text-muted-foreground">
-                QoQ: {getQuarterOnQuarterGrowth(quarterData.sales, previousQuarterData.sales)}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">EBIDT</p>
-            <p className="text-xl font-semibold">{formatCurrency(quarterData.EBIDT)}</p>
-            {previousQuarterData && (
-              <p className="text-xs text-muted-foreground">
-                QoQ: {getQuarterOnQuarterGrowth(quarterData.EBIDT, previousQuarterData.EBIDT)}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Net Profit</p>
-            <p className="text-xl font-semibold">{formatCurrency(quarterData.net_profit)}</p>
-            {previousQuarterData && (
-              <p className="text-xs text-muted-foreground">
-                QoQ: {getQuarterOnQuarterGrowth(quarterData.net_profit, previousQuarterData.net_profit)}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">EPS</p>
-            <p className="text-xl font-semibold">{quarterData.EPS}</p>
+      <CardContent className="space-y-6">
+        {/* Key Financial Metrics */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            Quarterly Performance
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: "Sales", value: quarterData.sales, icon: DollarSign },
+              { label: "EBIDT", value: quarterData.EBIDT, icon: TrendingUp },
+              { label: "Net Profit", value: quarterData.net_profit, icon: Activity },
+              { label: "EPS", value: quarterData.EPS, icon: BarChart3, isString: true }
+            ].map((metric, index) => (
+              <div key={index} className="bg-white/40 dark:bg-gray-800/40 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <metric.icon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <span className="text-sm font-medium text-muted-foreground">{metric.label}</span>
+                </div>
+                <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {metric.isString ? metric.value : formatCurrency(metric.value as number)}
+                </div>
+                {previousQuarterData && !metric.isString && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    QoQ: {getQuarterOnQuarterGrowth(
+                      metric.value as number,
+                      previousQuarterData[metric.label.toLowerCase().replace(' ', '_') as keyof QuarterData] as number
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* YOY Growth Indicators */}
-        <div className="border-t pt-4">
-          <p className="text-sm font-medium mb-3">Year-over-Year Growth</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Sales</span>
-              <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.sales_growth)}`}>
-                {getGrowthIcon(company.financials.YOY.sales_growth)}
-                <span className="text-sm font-medium">
-                  {formatPercentage(company.financials.YOY.sales_growth)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">EBIDT</span>
-              <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.EBIDT_growth)}`}>
-                {getGrowthIcon(company.financials.YOY.EBIDT_growth)}
-                <span className="text-sm font-medium">
-                  {formatPercentage(company.financials.YOY.EBIDT_growth)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Profit</span>
-              <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.net_profit_growth)}`}>
-                {getGrowthIcon(company.financials.YOY.net_profit_growth)}
-                <span className="text-sm font-medium">
-                  {formatPercentage(company.financials.YOY.net_profit_growth)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">EPS</span>
-              <div className={`flex items-center gap-1 ${getGrowthColorClass(company.financials.YOY.EPS_growth)}`}>
-                {getGrowthIcon(company.financials.YOY.EPS_growth)}
-                <span className="text-sm font-medium">
-                  {formatPercentage(company.financials.YOY.EPS_growth)}
-                </span>
-              </div>
+        {/* YOY Growth Section */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+            Year-over-Year Growth
+          </h3>
+          <div className="bg-white/40 dark:bg-gray-800/40 rounded-lg p-4 border border-gray-100 dark:border-gray-700/50">
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Sales", growth: company.financials.YOY.sales_growth },
+                { label: "EBIDT", growth: company.financials.YOY.EBIDT_growth },
+                { label: "Profit", growth: company.financials.YOY.net_profit_growth },
+                { label: "EPS", growth: company.financials.YOY.EPS_growth }
+              ].map((item, index) => (
+                <div key={index} className="flex items-center justify-between py-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.label}</span>
+                  <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold ${getGrowthColorClass(item.growth)} bg-opacity-10`}>
+                    {getGrowthIcon(item.growth)}
+                    {formatPercentage(item.growth)}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Market Cap Category Badge */}
-        <div className="border-t pt-3">
+        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
           {(() => {
-            // Use live market cap if available, otherwise fall back to static data
             const marketCapToUse = liveMetrics?.marketCap
               ? formatLiveMarketCap(liveMetrics.marketCap)
               : company.market_cap;
@@ -270,10 +275,9 @@ export function CompanyPerformanceCard({
             return (
               <Badge
                 variant="outline"
-                className={`${category.color} ${category.bgColor} border-current text-sm px-3 py-1`}
+                className={`${category.color} ${category.bgColor} border-current text-sm font-semibold px-4 py-2`}
               >
                 {category.label}
-
               </Badge>
             );
           })()}

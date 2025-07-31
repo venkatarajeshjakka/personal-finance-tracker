@@ -70,9 +70,21 @@ export interface Watchlist {
   name: string;
   description?: string;
   userId: string;
-  symbols: string[];
+  stocks: WatchlistStock[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface WatchlistStock {
+  id: string;
+  symbol: string;
+  companyName: string;
+  addedAt: Date;
+  addedPrice?: number; // Price when added to watchlist
+  currentPrice?: number;
+  priceChange?: number;
+  priceChangePercent?: number;
+  lastUpdated?: Date;
 }
 
 // NSE Company interfaces

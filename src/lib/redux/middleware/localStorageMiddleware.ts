@@ -20,6 +20,7 @@ const SYNC_ACTIONS = [
   'companies/saveCompany/fulfilled',
   'companies/deleteCompany/fulfilled',
   'companies/importCompanyData/fulfilled',
+  'companies/importCompanyDataFromJSON/fulfilled',
   'companies/updateCompanyInState',
 
   // Portfolio actions
@@ -31,8 +32,9 @@ const SYNC_ACTIONS = [
   // Watchlist actions
   'watchlists/saveWatchlist/fulfilled',
   'watchlists/deleteWatchlist/fulfilled',
-  'watchlists/addSymbolToWatchlist/fulfilled',
-  'watchlists/removeSymbolFromWatchlist/fulfilled',
+  'watchlists/addStockToWatchlist/fulfilled',
+  'watchlists/removeStockFromWatchlist/fulfilled',
+  'watchlists/updateStockPrices/fulfilled',
   'watchlists/updateWatchlistInState',
 
   // NSE Companies actions

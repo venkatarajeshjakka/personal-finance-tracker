@@ -16,13 +16,15 @@ const COMPONENT_HANDLED_ACTIONS = new Set([
   'companies/deleteCompany', // Handled by component
   'companies/bulkDeleteCompanies', // Handled by component
   'companies/importCompanyData',
+  'companies/importCompanyDataFromJSON',
   'companies/importCompaniesWithProcessing', // Handled by component
   'companies/mergeCompanies',
   'portfolios/savePortfolio',
   'portfolios/addTransaction',
   'watchlists/saveWatchlist',
-  'watchlists/addSymbolToWatchlist',
-  'watchlists/removeSymbolFromWatchlist',
+  'watchlists/addStockToWatchlist',
+  'watchlists/removeStockFromWatchlist',
+  'watchlists/updateStockPrices',
   'nseCompanies/uploadCSV',
   'nseCompanies/clear'
 ]);

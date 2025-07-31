@@ -7,7 +7,7 @@ import {
   loadCompanies,
   saveCompany,
   deleteCompany,
-  importCompanyData,
+  importCompanyDataFromJSON,
   setSelectedQuarter,
   setSelectedYear,
   loadPortfolios,
@@ -18,8 +18,8 @@ import {
   loadWatchlists,
   saveWatchlist,
   deleteWatchlist,
-  addSymbolToWatchlist,
-  removeSymbolFromWatchlist,
+  addStockToWatchlist,
+  removeStockFromWatchlist,
   setSelectedWatchlist,
   setSortBy,
   setSortOrder,
@@ -64,7 +64,7 @@ export const useCompanies = () => {
     loadCompanies: useCallback(() => dispatch(loadCompanies()), [dispatch]),
     saveCompany: useCallback((company: CompanyFinancials) => dispatch(saveCompany(company)), [dispatch]),
     deleteCompany: useCallback((id: string) => dispatch(deleteCompany(id)), [dispatch]),
-    importCompanyData: useCallback((jsonData: string) => dispatch(importCompanyData(jsonData)), [dispatch]),
+    importCompanyData: useCallback((jsonData: string) => dispatch(importCompanyDataFromJSON(jsonData)), [dispatch]),
     setSelectedQuarter: useCallback((quarter: string) => dispatch(setSelectedQuarter(quarter)), [dispatch]),
     setSelectedYear: useCallback((year: number) => dispatch(setSelectedYear(year)), [dispatch]),
   };
@@ -114,10 +114,10 @@ export const useWatchlists = () => {
     loadWatchlists: useCallback(() => dispatch(loadWatchlists()), [dispatch]),
     saveWatchlist: useCallback((watchlist: Watchlist) => dispatch(saveWatchlist(watchlist)), [dispatch]),
     deleteWatchlist: useCallback((id: string) => dispatch(deleteWatchlist(id)), [dispatch]),
-    addSymbolToWatchlist: useCallback((watchlistId: string, symbol: string) =>
-      dispatch(addSymbolToWatchlist({ watchlistId, symbol })), [dispatch]),
-    removeSymbolFromWatchlist: useCallback((watchlistId: string, symbol: string) =>
-      dispatch(removeSymbolFromWatchlist({ watchlistId, symbol })), [dispatch]),
+    addStockToWatchlist: useCallback((watchlistId: string, stock: any) =>
+      dispatch(addStockToWatchlist({ watchlistId, stock })), [dispatch]),
+    removeStockFromWatchlist: useCallback((watchlistId: string, stockId: string) =>
+      dispatch(removeStockFromWatchlist({ watchlistId, stockId })), [dispatch]),
     setSelectedWatchlist: useCallback((id: string | null) => dispatch(setSelectedWatchlist(id)), [dispatch]),
   };
 

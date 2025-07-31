@@ -13,6 +13,7 @@ export {
   saveCompany,
   deleteCompany,
   importCompanyData,
+  importCompanyDataFromJSON,
   setSelectedQuarter,
   setSelectedYear,
   clearError as clearCompaniesError,
@@ -34,11 +35,15 @@ export {
   loadWatchlists,
   saveWatchlist,
   deleteWatchlist,
-  addSymbolToWatchlist,
-  removeSymbolFromWatchlist,
+  addStockToWatchlist,
+  removeStockFromWatchlist,
+  updateStockPrices,
   setSelectedWatchlist,
   clearError as clearWatchlistsError,
-  updateWatchlistInState
+  updateWatchlistInState,
+  // Legacy exports for backward compatibility
+  addStockToWatchlist as addSymbolToWatchlist,
+  removeStockFromWatchlist as removeSymbolFromWatchlist
 } from './watchlistsSlice';
 
 export {

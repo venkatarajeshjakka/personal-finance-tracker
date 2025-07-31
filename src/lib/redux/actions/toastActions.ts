@@ -20,8 +20,8 @@ import {
 import { 
   saveWatchlist, 
   deleteWatchlist, 
-  addSymbolToWatchlist, 
-  removeSymbolFromWatchlist 
+  addStockToWatchlist, 
+  removeStockFromWatchlist 
 } from '../slices/watchlistsSlice';
 import { 
   uploadNSECompaniesCSV, 
@@ -195,26 +195,26 @@ export const deleteWatchlistWithToast = (id: string, watchlistName?: string) =>
     );
   };
 
-export const addSymbolToWatchlistWithToast = (watchlistId: string, symbol: string) => 
+export const addStockToWatchlistWithToast = (watchlistId: string, stock: any) => 
   async (dispatch: AppDispatch) => {
     return ToastService.promise(
-      dispatch(addSymbolToWatchlist({ watchlistId, symbol })).unwrap(),
+      dispatch(addStockToWatchlist({ watchlistId, stock })).unwrap(),
       {
-        loading: 'Adding symbol to watchlist...',
-        success: `Symbol "${symbol}" added to watchlist successfully!`,
-        error: 'Failed to add symbol to watchlist'
+        loading: 'Adding stock to watchlist...',
+        success: `Stock "${stock.companyName}" added to watchlist successfully!`,
+        error: 'Failed to add stock to watchlist'
       }
     );
   };
 
-export const removeSymbolFromWatchlistWithToast = (watchlistId: string, symbol: string) => 
+export const removeStockFromWatchlistWithToast = (watchlistId: string, stockId: string) => 
   async (dispatch: AppDispatch) => {
     return ToastService.promise(
-      dispatch(removeSymbolFromWatchlist({ watchlistId, symbol })).unwrap(),
+      dispatch(removeStockFromWatchlist({ watchlistId, stockId })).unwrap(),
       {
-        loading: 'Removing symbol from watchlist...',
-        success: `Symbol "${symbol}" removed from watchlist successfully!`,
-        error: 'Failed to remove symbol from watchlist'
+        loading: 'Removing stock from watchlist...',
+        success: 'Stock removed from watchlist successfully!',
+        error: 'Failed to remove stock from watchlist'
       }
     );
   };
