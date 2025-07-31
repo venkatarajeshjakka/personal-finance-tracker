@@ -85,6 +85,10 @@ export interface WatchlistStock {
   priceChange?: number;
   priceChangePercent?: number;
   lastUpdated?: Date;
+  // Additional financial metrics
+  peRatio?: number;
+  marketCap?: number;
+  priceToBook?: number;
 }
 
 // NSE Company interfaces

@@ -26,7 +26,7 @@ export async function GET(
     while (retryCount < maxRetries) {
       try {
 
-        const quote = await yahooFinance.quoteSummary(formattedSymbol, { modules: ["price", "summaryDetail", "defaultKeyStatistics","summaryProfile"] })
+        const quote = await yahooFinance.quoteSummary(formattedSymbol, { modules: ["price", "summaryDetail", "defaultKeyStatistics", "summaryProfile"] })
 
         if (!quote) {
           throw new Error('No quote data received');
@@ -59,7 +59,7 @@ export async function GET(
           trailingAnnualDividendYield: null,
           beta: quote.summaryDetail?.beta || null,
           //Company Profile
-          industry:quote.summaryProfile?.industry,
+          industry: quote.summaryProfile?.industry,
           sector: quote.summaryProfile?.sector
         };
 

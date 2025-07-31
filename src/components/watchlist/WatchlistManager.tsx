@@ -22,14 +22,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreVertical, Trash2, Eye } from 'lucide-react';
+import { EditWatchlistDialog } from './EditWatchlistDialog';
+import { MoreVertical, Trash2, Eye, Edit } from 'lucide-react';
 import { toast } from 'sonner';
+import { Watchlist } from '@/types';
 
 export function WatchlistManager() {
   const dispatch = useAppDispatch();
   const { data: watchlists, loading, selectedWatchlist } = useAppSelector(state => state.watchlists);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [watchlistToDelete, setWatchlistToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [watchlistToEdit, setWatchlistToEdit] = useState<Watchlist | null>(null);
 
   const handleSelectWatchlist = (watchlistId: string) => {
     dispatch(setSelectedWatchlist(watchlistId));
@@ -49,6 +53,11 @@ export function WatchlistManager() {
   const openDeleteDialog = (watchlistId: string) => {
     setWatchlistToDelete(watchlistId);
     setDeleteDialogOpen(true);
+  };
+
+  const openEditDialog = (watchlist: Watchlist) => {
+    setWatchlistToEdit(watchlist);
+    setEditDialogOpen(true);
   };
 
   if (loading) {
@@ -121,6 +130,10 @@ export function WatchlistManager() {
                           <Eye className="h-4 w-4 mr-2" />
                           View
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEditDialog(watchlist)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => openDeleteDialog(watchlist.id)}
                           className="text-destructive"
@@ -157,6 +170,12 @@ export function WatchlistManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditWatchlistDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        watchlist={watchlistToEdit}
+      />
     </>
   );
 }

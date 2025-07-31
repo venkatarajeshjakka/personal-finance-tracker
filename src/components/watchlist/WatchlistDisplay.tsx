@@ -33,13 +33,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AddStockDialog } from './AddStockDialog';
+import { MoveStockDialog } from './MoveStockDialog';
 import {
   Plus,
   RefreshCw,
   MoreVertical,
   Trash2,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  ArrowRightLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { shouldUpdatePrices, getMarketStatus } from '@/lib/utils/marketHours';
@@ -55,6 +57,8 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [stockToDelete, setStockToDelete] = useState<WatchlistStock | null>(null);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [stockToMove, setStockToMove] = useState<WatchlistStock | null>(null);
 
   const handleRefreshPrices = useCallback(async (forceRefresh = false) => {
     if (watchlist.stocks.length === 0) return;
@@ -95,12 +99,18 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
             const currentPrice = quote.regularMarketPrice || 0;
             const priceChange = quote.regularMarketChange || 0;
             const priceChangePercent = quote.regularMarketChangePercent || 0;
+            const peRatio = quote.trailingPE || quote.forwardPE || null;
+            const marketCap = quote.marketCap || null;
+            const priceToBook = quote.priceToBook || null;
 
             return {
               stockId: stock.id,
               currentPrice,
               priceChange,
               priceChangePercent,
+              peRatio,
+              marketCap,
+              priceToBook,
             };
           }
 
@@ -109,6 +119,9 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
             currentPrice: stock.currentPrice || 0,
             priceChange: stock.priceChange || 0,
             priceChangePercent: stock.priceChangePercent || 0,
+            peRatio: stock.peRatio,
+            marketCap: stock.marketCap,
+            priceToBook: stock.priceToBook,
           };
         });
 
@@ -129,10 +142,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   // Auto-refresh prices based on settings
   useEffect(() => {
     // Wait for settings to load and ensure auto-refresh is enabled
-    if (settingsLoading || 
-        !priceUpdateSettings || 
-        !priceUpdateSettings.autoRefreshEnabled || 
-        watchlist.stocks.length === 0) {
+    if (settingsLoading ||
+      !priceUpdateSettings ||
+      !priceUpdateSettings.autoRefreshEnabled ||
+      watchlist.stocks.length === 0) {
       return;
     }
 
@@ -142,10 +155,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
 
     return () => clearInterval(interval);
   }, [
-    watchlist.stocks.length, 
-    handleRefreshPrices, 
+    watchlist.stocks.length,
+    handleRefreshPrices,
     settingsLoading,
-    priceUpdateSettings?.autoRefreshEnabled, 
+    priceUpdateSettings?.autoRefreshEnabled,
     priceUpdateSettings?.refreshInterval
   ]);
 
@@ -169,6 +182,11 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
     setDeleteDialogOpen(true);
   };
 
+  const openMoveDialog = (stock: WatchlistStock) => {
+    setStockToMove(stock);
+    setMoveDialogOpen(true);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -179,6 +197,15 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
 
   const formatPercentage = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+  };
+
+  const formatMarketCap = (value: number) => {
+    // Convert to crores for Indian market display (same as dashboard)
+    const crores = value / 10000000; // 1 crore = 10 million
+    return `₹${crores.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}Cr`;
   };
 
   const getRefreshIntervalLabel = (interval: number) => {
@@ -209,14 +236,7 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
     };
   }, [dispatch]);
 
-  const calculateReturns = (stock: WatchlistStock) => {
-    if (!stock.addedPrice || !stock.currentPrice) return null;
 
-    const returnAmount = stock.currentPrice - stock.addedPrice;
-    const returnPercent = (returnAmount / stock.addedPrice) * 100;
-
-    return { returnAmount, returnPercent };
-  };
 
   return (
     <>
@@ -268,16 +288,14 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                     <TableHead>Stock</TableHead>
                     <TableHead className="text-right">Current Price</TableHead>
                     <TableHead className="text-right">Change</TableHead>
-                    <TableHead className="text-right">Added Price</TableHead>
-                    <TableHead className="text-right">Returns</TableHead>
-                    <TableHead className="text-right">Added Date</TableHead>
+                    <TableHead className="text-right">P/E</TableHead>
+                    <TableHead className="text-right">Market Cap</TableHead>
+                    <TableHead className="text-right">P/B</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {watchlist.stocks.map((stock) => {
-                    const returns = calculateReturns(stock);
-
                     return (
                       <TableRow key={stock.id}>
                         <TableCell>
@@ -285,6 +303,14 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                             <div className="font-medium">{stock.companyName}</div>
                             <div className="text-sm text-muted-foreground">
                               {stock.symbol}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Added: {new Date(stock.addedAt).toLocaleDateString()}
+                              {stock.addedPrice && (
+                                <span className="ml-2">
+                                  @ {formatCurrency(stock.addedPrice)}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </TableCell>
@@ -319,21 +345,9 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                         </TableCell>
 
                         <TableCell className="text-right">
-                          {stock.addedPrice ? (
-                            formatCurrency(stock.addedPrice)
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          {returns ? (
-                            <div className={`${returns.returnAmount >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              <div className="text-sm">
-                                <div>{formatCurrency(Math.abs(returns.returnAmount))}</div>
-                                <div>{formatPercentage(returns.returnPercent)}</div>
-                              </div>
+                          {stock.peRatio !== null && stock.peRatio !== undefined && !isNaN(stock.peRatio) ? (
+                            <div className="text-sm">
+                              {stock.peRatio.toFixed(2)}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
@@ -341,9 +355,23 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                         </TableCell>
 
                         <TableCell className="text-right">
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(stock.addedAt).toLocaleDateString()}
-                          </div>
+                          {stock.marketCap !== null && stock.marketCap !== undefined && !isNaN(stock.marketCap) ? (
+                            <div className="text-sm">
+                              {formatMarketCap(stock.marketCap)}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          {stock.priceToBook !== null && stock.priceToBook !== undefined && !isNaN(stock.priceToBook) ? (
+                            <div className="text-sm">
+                              {stock.priceToBook.toFixed(2)}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
 
                         <TableCell>
@@ -354,6 +382,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openMoveDialog(stock)}>
+                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                Move to Another Watchlist
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => openDeleteDialog(stock)}
                                 className="text-destructive"
@@ -386,12 +418,12 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                     }
                   </span>
                   <span className="flex items-center gap-1">
-                    Market: 
+                    Market:
                     <span className={`font-medium ${marketStatus.isOpen
-                        ? 'text-green-600'
-                        : marketStatus.isHoliday
-                          ? 'text-orange-600'
-                          : 'text-red-600'
+                      ? 'text-green-600'
+                      : marketStatus.isHoliday
+                        ? 'text-orange-600'
+                        : 'text-red-600'
                       }`}>
                       {marketStatus.marketState}
                     </span>
@@ -399,10 +431,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                 </div>
                 <div className="flex items-center gap-4">
                   <span>
-                    Auto-refresh: 
+                    Auto-refresh:
                     <span className={`ml-1 font-medium ${priceUpdateSettings?.autoRefreshEnabled
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                      ? 'text-green-600'
+                      : 'text-red-600'
                       }`}>
                       {priceUpdateSettings?.autoRefreshEnabled
                         ? `${getRefreshIntervalLabel(priceUpdateSettings.refreshInterval || 3600000)}`
@@ -421,6 +453,13 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
         open={showAddStockDialog}
         onOpenChange={setShowAddStockDialog}
         watchlistId={watchlist.id}
+      />
+
+      <MoveStockDialog
+        open={moveDialogOpen}
+        onOpenChange={setMoveDialogOpen}
+        stock={stockToMove}
+        currentWatchlistId={watchlist.id}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

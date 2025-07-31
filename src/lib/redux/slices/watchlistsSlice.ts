@@ -74,11 +74,99 @@ export const removeStockFromWatchlist = createAsyncThunk(
   }
 );
 
+export const updateWatchlistName = createAsyncThunk(
+  'watchlists/updateWatchlistName',
+  async ({ watchlistId, name, description }: { watchlistId: string; name: string; description?: string }) => {
+    const watchlist = StorageService.getWatchlist(watchlistId);
+    if (!watchlist) {
+      throw new Error('Watchlist not found');
+    }
+
+    const updatedWatchlist: Watchlist = {
+      ...watchlist,
+      name: name.trim(),
+      description: description?.trim(),
+      updatedAt: new Date()
+    };
+
+    StorageService.saveWatchlist(updatedWatchlist);
+    return updatedWatchlist;
+  }
+);
+
+export const moveStockBetweenWatchlists = createAsyncThunk(
+  'watchlists/moveStockBetweenWatchlists',
+  async ({ fromWatchlistId, toWatchlistId, stockId }: { 
+    fromWatchlistId: string; 
+    toWatchlistId: string; 
+    stockId: string; 
+  }) => {
+    const fromWatchlist = StorageService.getWatchlist(fromWatchlistId);
+    const toWatchlist = StorageService.getWatchlist(toWatchlistId);
+    
+    if (!fromWatchlist) {
+      throw new Error('Source watchlist not found');
+    }
+    if (!toWatchlist) {
+      throw new Error('Destination watchlist not found');
+    }
+
+    const stockToMove = fromWatchlist.stocks.find(s => s.id === stockId);
+    if (!stockToMove) {
+      throw new Error('Stock not found in source watchlist');
+    }
+
+    // Check if stock already exists in destination watchlist
+    if (toWatchlist.stocks.some(s => s.symbol === stockToMove.symbol)) {
+      throw new Error('Stock already exists in destination watchlist');
+    }
+
+    // Create new stock with updated ID and timestamp for destination watchlist
+    const movedStock: WatchlistStock = {
+      ...stockToMove,
+      id: `${toWatchlistId}-${stockToMove.symbol}-${Date.now()}`,
+      addedAt: new Date() // Update the added date to current time
+    };
+
+    // Remove stock from source watchlist
+    const updatedFromWatchlist: Watchlist = {
+      ...fromWatchlist,
+      stocks: fromWatchlist.stocks.filter(s => s.id !== stockId),
+      updatedAt: new Date()
+    };
+
+    // Add stock to destination watchlist
+    const updatedToWatchlist: Watchlist = {
+      ...toWatchlist,
+      stocks: [...toWatchlist.stocks, movedStock],
+      updatedAt: new Date()
+    };
+
+    // Save both watchlists
+    StorageService.saveWatchlist(updatedFromWatchlist);
+    StorageService.saveWatchlist(updatedToWatchlist);
+
+    return {
+      fromWatchlist: updatedFromWatchlist,
+      toWatchlist: updatedToWatchlist,
+      movedStock
+    };
+  }
+);
+
 export const updateStockPrices = createAsyncThunk(
   'watchlists/updateStockPrices',
-  async ({ watchlistId, priceUpdates }: { 
-    watchlistId: string; 
-    priceUpdates: Array<{ stockId: string; currentPrice: number; priceChange: number; priceChangePercent: number }> 
+  async ({ watchlistId, priceUpdates }: {
+    watchlistId: string;
+    priceUpdates: Array<{ 
+      stockId: string; 
+      currentPrice: number; 
+      priceChange: number; 
+      priceChangePercent: number;
+      peRatio?: number;
+      marketCap?: number;
+      priceToBook?: number;
+    }>
   }) => {
     const watchlist = StorageService.getWatchlist(watchlistId);
     if (!watchlist) {
@@ -93,6 +181,9 @@ export const updateStockPrices = createAsyncThunk(
           currentPrice: update.currentPrice,
           priceChange: update.priceChange,
           priceChangePercent: update.priceChangePercent,
+          peRatio: update.peRatio,
+          marketCap: update.marketCap,
+          priceToBook: update.priceToBook,
           lastUpdated: new Date()
         };
       }
@@ -217,6 +308,46 @@ const watchlistsSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to remove stock from watchlist';
       })
+      // Update watchlist name
+      .addCase(updateWatchlistName.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateWatchlistName.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.data.findIndex(w => w.id === action.payload.id);
+        if (index !== -1) {
+          state.data[index] = action.payload;
+        }
+      })
+      .addCase(updateWatchlistName.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update watchlist name';
+      })
+      // Move stock between watchlists
+      .addCase(moveStockBetweenWatchlists.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(moveStockBetweenWatchlists.fulfilled, (state, action) => {
+        state.loading = false;
+        const { fromWatchlist, toWatchlist } = action.payload;
+        
+        // Update both watchlists in state
+        const fromIndex = state.data.findIndex(w => w.id === fromWatchlist.id);
+        const toIndex = state.data.findIndex(w => w.id === toWatchlist.id);
+        
+        if (fromIndex !== -1) {
+          state.data[fromIndex] = fromWatchlist;
+        }
+        if (toIndex !== -1) {
+          state.data[toIndex] = toWatchlist;
+        }
+      })
+      .addCase(moveStockBetweenWatchlists.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to move stock between watchlists';
+      })
       // Update stock prices
       .addCase(updateStockPrices.pending, (state) => {
         state.loading = true;
@@ -236,10 +367,10 @@ const watchlistsSlice = createSlice({
   }
 });
 
-export const { 
-  setSelectedWatchlist, 
-  clearError, 
-  updateWatchlistInState 
+export const {
+  setSelectedWatchlist,
+  clearError,
+  updateWatchlistInState
 } = watchlistsSlice.actions;
 
 export default watchlistsSlice.reducer;

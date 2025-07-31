@@ -1,3 +1,22 @@
+/**
+ * Toast Middleware for Redux Actions
+ * 
+ * This middleware handles automatic toast notifications for system-level operations.
+ * 
+ * IMPORTANT GUIDELINE: All user-initiated CRUD operations should handle toasts 
+ * at the component level to prevent duplicate notifications and provide better UX.
+ * 
+ * To prevent duplicate toasts:
+ * 1. Handle toasts directly in components using toast.success(), toast.error(), etc.
+ * 2. Add the action type to COMPONENT_HANDLED_ACTIONS set below
+ * 3. Remove any corresponding entries from TOAST_MESSAGES
+ * 
+ * This middleware should only handle:
+ * - System-level notifications
+ * - Background operations
+ * - Operations without direct user interaction
+ */
+
 import { Middleware } from '@reduxjs/toolkit';
 import ToastService from '@/lib/toast';
 
@@ -10,6 +29,17 @@ interface ReduxAction {
 }
 
 // Actions that are handled manually by components or toastActions (to avoid duplicate toasts)
+// 
+// IMPORTANT: All user-initiated CRUD operations should handle toasts at the component level
+// to prevent duplicate notifications. Add any new user action types to this set.
+// 
+// Component-level toast handling provides:
+// - Better user experience with contextual messages
+// - No duplicate notifications
+// - Easier debugging and maintenance
+// - Clear separation of concerns
+//
+// Only system-level operations should use middleware toasts.
 const COMPONENT_HANDLED_ACTIONS = new Set([
   'companies/saveCompany',
   'companies/updateCompany',
