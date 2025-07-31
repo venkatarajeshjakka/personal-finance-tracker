@@ -26,6 +26,7 @@ import { EditWatchlistDialog } from './EditWatchlistDialog';
 import { MoreVertical, Trash2, Eye, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { Watchlist } from '@/types';
+import { formatDate } from '@/lib/utils/dateUtils';
 
 export function WatchlistManager() {
   const dispatch = useAppDispatch();
@@ -115,7 +116,7 @@ export function WatchlistManager() {
                           {watchlist.stocks.length} stocks
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(watchlist.updatedAt).toLocaleDateString()}
+                          {formatDate(watchlist.updatedAt)}
                         </span>
                       </div>
                     </div>

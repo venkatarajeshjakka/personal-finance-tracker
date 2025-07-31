@@ -14,14 +14,46 @@ export default function WatchlistPage() {
   const dispatch = useAppDispatch();
   const { data: watchlists, selectedWatchlist } = useAppSelector(state => state.watchlists);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     dispatch(loadWatchlists());
   }, [dispatch]);
 
-  const selectedWatchlistData = selectedWatchlist 
+  const selectedWatchlistData = selectedWatchlist
     ? watchlists.find(w => w.id === selectedWatchlist)
     : null;
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Watchlists</h1>
+              <p className="text-muted-foreground">
+                Track and monitor your favorite stocks and investments.
+              </p>
+            </div>
+            <Button disabled>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Watchlist
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1">
+              <div className="animate-pulse bg-muted rounded-lg h-64"></div>
+            </div>
+            <div className="lg:col-span-3">
+              <div className="animate-pulse bg-muted rounded-lg h-64"></div>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -64,9 +96,9 @@ export default function WatchlistPage() {
           </div>
         </div>
 
-        <CreateWatchlistDialog 
-          open={showCreateDialog} 
-          onOpenChange={setShowCreateDialog} 
+        <CreateWatchlistDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
         />
       </div>
     </AppLayout>

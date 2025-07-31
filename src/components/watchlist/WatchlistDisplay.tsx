@@ -45,6 +45,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { shouldUpdatePrices, getMarketStatus } from '@/lib/utils/marketHours';
+import PriceUpdateService from '@/lib/services/priceUpdateService';
+import { formatDate, formatDateTime, formatNumber } from '@/lib/utils/dateUtils';
 
 interface WatchlistDisplayProps {
   watchlist: Watchlist;
@@ -63,54 +65,34 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   const handleRefreshPrices = useCallback(async (forceRefresh = false) => {
     if (watchlist.stocks.length === 0) return;
 
-    // Check if we should update prices based on market hours settings
-    if (!forceRefresh && priceUpdateSettings && !shouldUpdatePrices(
-      priceUpdateSettings.marketHoursOnly,
-      priceUpdateSettings.checkMarketHolidays
-    )) {
-      return;
-    }
-
     setRefreshing(true);
     try {
       const symbols = watchlist.stocks.map(stock => stock.symbol);
 
-      const response = await fetch('/api/stocks/quotes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ symbols }),
-      });
+      // Use PriceUpdateService instead of direct API call (same as dashboard)
+      const bulkResult = forceRefresh
+        ? await PriceUpdateService.forceFetchBulkStockPrices(symbols)
+        : await PriceUpdateService.getBulkStockPrices(symbols, {
+          marketHoursOnly: priceUpdateSettings?.marketHoursOnly ?? true,
+          checkHolidays: priceUpdateSettings?.checkMarketHolidays ?? true
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch stock prices');
-      }
-
-      const data = await response.json();
-
-      if (data.quotes && data.quotes.length > 0) {
+      if (bulkResult.results && bulkResult.results.length > 0) {
         const priceUpdates = watchlist.stocks.map(stock => {
-          const quote = data.quotes.find((q: { symbol: string }) =>
-            q.symbol === stock.symbol || q.symbol === `${stock.symbol}.NS`
+          const formattedSymbol = stock.symbol.includes('.') ? stock.symbol : `${stock.symbol}.NS`;
+          const priceResult = bulkResult.results.find(result =>
+            result.symbol === formattedSymbol && result.success
           );
 
-          if (quote) {
-            const currentPrice = quote.regularMarketPrice || 0;
-            const priceChange = quote.regularMarketChange || 0;
-            const priceChangePercent = quote.regularMarketChangePercent || 0;
-            const peRatio = quote.trailingPE || quote.forwardPE || null;
-            const marketCap = quote.marketCap || null;
-            const priceToBook = quote.priceToBook || null;
-
+          if (priceResult && priceResult.price !== undefined) {
             return {
               stockId: stock.id,
-              currentPrice,
-              priceChange,
-              priceChangePercent,
-              peRatio,
-              marketCap,
-              priceToBook,
+              currentPrice: priceResult.price,
+              priceChange: priceResult.change || 0,
+              priceChangePercent: priceResult.changePercent || 0,
+              peRatio: priceResult.trailingPE || priceResult.forwardPE || null,
+              marketCap: priceResult.marketCap || null,
+              priceToBook: priceResult.priceToBook || null,
             };
           }
 
@@ -130,7 +112,16 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
           priceUpdates,
         })).unwrap();
 
-        toast.success('Stock prices updated');
+        const successCount = bulkResult.totalSuccess;
+        const cachedCount = bulkResult.totalCached;
+
+        if (successCount > 0) {
+          toast.success(
+            `Stock prices updated (${successCount} stocks${cachedCount > 0 ? `, ${cachedCount} from cache` : ''})`
+          );
+        } else {
+          toast.warning('No stock prices were updated');
+        }
       }
     } catch (error) {
       toast.error('Failed to refresh stock prices');
@@ -202,10 +193,7 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   const formatMarketCap = (value: number) => {
     // Convert to crores for Indian market display (same as dashboard)
     const crores = value / 10000000; // 1 crore = 10 million
-    return `₹${crores.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}Cr`;
+    return `₹${formatNumber(crores)}Cr`;
   };
 
   const getRefreshIntervalLabel = (interval: number) => {
@@ -305,7 +293,7 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                               {stock.symbol}
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
-                              Added: {new Date(stock.addedAt).toLocaleDateString()}
+                              Added: {formatDate(stock.addedAt)}
                               {stock.addedPrice && (
                                 <span className="ml-2">
                                   @ {formatCurrency(stock.addedPrice)}
@@ -410,10 +398,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                 <div className="flex items-center gap-4">
                   <span>
                     Last updated: {watchlist.stocks.some(s => s.lastUpdated)
-                      ? new Date(Math.max(...watchlist.stocks
+                      ? formatDateTime(new Date(Math.max(...watchlist.stocks
                         .filter(s => s.lastUpdated)
                         .map(s => new Date(s.lastUpdated!).getTime())
-                      )).toLocaleString()
+                      )))
                       : 'Never'
                     }
                   </span>

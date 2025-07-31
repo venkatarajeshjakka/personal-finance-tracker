@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { Watchlist, WatchlistStock, WatchlistsState } from '@/types';
 import { StorageService } from '@/lib/storage';
+import PriceUpdateService from '@/lib/services/priceUpdateService';
 
 // Async thunks for watchlist operations
 export const loadWatchlists = createAsyncThunk(
@@ -38,10 +39,21 @@ export const addStockToWatchlist = createAsyncThunk(
       throw new Error('Stock already exists in watchlist');
     }
 
+    // Fetch current price and financial metrics for the new stock
+    const priceResult = await PriceUpdateService.getStockPrice(stock.symbol);
+
     const newStock: WatchlistStock = {
       id: `${watchlistId}-${stock.symbol}-${Date.now()}`,
       ...stock,
-      addedAt: new Date()
+      addedAt: new Date(),
+      // Add current price and financial metrics if available
+      currentPrice: priceResult.success ? priceResult.price : undefined,
+      priceChange: priceResult.success ? priceResult.change : undefined,
+      priceChangePercent: priceResult.success ? priceResult.changePercent : undefined,
+      peRatio: priceResult.success ? (priceResult.trailingPE || priceResult.forwardPE) : null,
+      marketCap: priceResult.success ? priceResult.marketCap : null,
+      priceToBook: priceResult.success ? priceResult.priceToBook : null,
+      lastUpdated: priceResult.success ? new Date() : undefined
     };
 
     const updatedWatchlist: Watchlist = {
@@ -96,14 +108,14 @@ export const updateWatchlistName = createAsyncThunk(
 
 export const moveStockBetweenWatchlists = createAsyncThunk(
   'watchlists/moveStockBetweenWatchlists',
-  async ({ fromWatchlistId, toWatchlistId, stockId }: { 
-    fromWatchlistId: string; 
-    toWatchlistId: string; 
-    stockId: string; 
+  async ({ fromWatchlistId, toWatchlistId, stockId }: {
+    fromWatchlistId: string;
+    toWatchlistId: string;
+    stockId: string;
   }) => {
     const fromWatchlist = StorageService.getWatchlist(fromWatchlistId);
     const toWatchlist = StorageService.getWatchlist(toWatchlistId);
-    
+
     if (!fromWatchlist) {
       throw new Error('Source watchlist not found');
     }
@@ -158,14 +170,14 @@ export const updateStockPrices = createAsyncThunk(
   'watchlists/updateStockPrices',
   async ({ watchlistId, priceUpdates }: {
     watchlistId: string;
-    priceUpdates: Array<{ 
-      stockId: string; 
-      currentPrice: number; 
-      priceChange: number; 
+    priceUpdates: Array<{
+      stockId: string;
+      currentPrice: number;
+      priceChange: number;
       priceChangePercent: number;
-      peRatio?: number;
-      marketCap?: number;
-      priceToBook?: number;
+      peRatio?: number | null;
+      marketCap?: number | null;
+      priceToBook?: number | null;
     }>
   }) => {
     const watchlist = StorageService.getWatchlist(watchlistId);
@@ -332,11 +344,11 @@ const watchlistsSlice = createSlice({
       .addCase(moveStockBetweenWatchlists.fulfilled, (state, action) => {
         state.loading = false;
         const { fromWatchlist, toWatchlist } = action.payload;
-        
+
         // Update both watchlists in state
         const fromIndex = state.data.findIndex(w => w.id === fromWatchlist.id);
         const toIndex = state.data.findIndex(w => w.id === toWatchlist.id);
-        
+
         if (fromIndex !== -1) {
           state.data[fromIndex] = fromWatchlist;
         }
