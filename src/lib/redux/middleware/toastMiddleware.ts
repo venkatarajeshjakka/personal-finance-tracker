@@ -22,6 +22,7 @@ const COMPONENT_HANDLED_ACTIONS = new Set([
   'portfolios/savePortfolio',
   'portfolios/addTransaction',
   'watchlists/saveWatchlist',
+  'watchlists/deleteWatchlist',
   'watchlists/addStockToWatchlist',
   'watchlists/removeStockFromWatchlist',
   'watchlists/updateStockPrices',
@@ -44,9 +45,7 @@ const TOAST_MESSAGES = {
 
 
   // Watchlist operations (excluding manually handled ones)
-  'watchlists/deleteWatchlist/pending': 'Deleting watchlist...',
-  'watchlists/deleteWatchlist/fulfilled': 'Watchlist deleted successfully!',
-  'watchlists/deleteWatchlist/rejected': (action: ReduxAction) => `Failed to delete watchlist: ${action.error?.message || 'Unknown error'}`,
+  // All watchlist operations are now handled by components
 
 
 
