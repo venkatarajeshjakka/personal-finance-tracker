@@ -44,15 +44,31 @@ import {
   ArrowRightLeft,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Settings,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getMarketStatus } from '@/lib/utils/marketHours';
 import PriceUpdateService from '@/lib/services/priceUpdateService';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils/dateUtils';
 
-type SortField = 'name' | 'currentPrice' | 'priceChange' | 'peRatio' | 'marketCap' | 'priceToBook' | 'fiftyTwoWeekHighDistance';
+type SortField = 'name' | 'currentPrice' | 'priceChange' | 'peRatio' | 'marketCap' | 'priceToBook' | 'fiftyTwoWeekHighDistance' | 'volume' | 'dayRange' | 'beta';
 type SortDirection = 'asc' | 'desc';
+
+// Column configuration interface
+interface ColumnConfig {
+  key: SortField;
+  label: string;
+  subLabel?: string;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+  sortable?: boolean;
+  visible?: boolean;
+  render: (stock: WatchlistStock) => React.ReactNode;
+  getValue?: (stock: WatchlistStock) => any; // For sorting
+}
 
 interface WatchlistDisplayProps {
   watchlist: Watchlist;
@@ -69,6 +85,18 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   const [stockToMove, setStockToMove] = useState<WatchlistStock | null>(null);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
+    name: true,
+    currentPrice: true,
+    priceChange: true,
+    peRatio: true,
+    marketCap: true,
+    priceToBook: true,
+    fiftyTwoWeekHighDistance: true,
+    volume: false,
+    dayRange: false,
+    beta: false
+  });
 
   // Use refs to store current values without causing re-renders
   const settingsRef = useRef(priceUpdateSettings);
@@ -323,6 +351,208 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
     return `${isNegative ? '-' : '+'}${absDistance.toFixed(1)}%`;
   };
 
+  const formatVolume = (volume: number) => {
+    if (volume >= 10000000) {
+      return `${(volume / 10000000).toFixed(1)}Cr`;
+    } else if (volume >= 100000) {
+      return `${(volume / 100000).toFixed(1)}L`;
+    } else if (volume >= 1000) {
+      return `${(volume / 1000).toFixed(1)}K`;
+    }
+    return volume.toString();
+  };
+
+  // Column configurations - easily extendable
+  const columnConfigs: ColumnConfig[] = [
+    {
+      key: 'name',
+      label: 'Stock',
+      align: 'left',
+      sortable: true,
+      render: (stock) => (
+        <div>
+          <div className="font-medium">{stock.companyName}</div>
+          <div className="text-sm text-muted-foreground">{stock.symbol}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Added: {formatDate(stock.addedAt)}
+            {stock.addedPrice && (
+              <span className="ml-2">@ {formatCurrency(stock.addedPrice)}</span>
+            )}
+          </div>
+        </div>
+      ),
+      getValue: (stock) => stock.companyName.toLowerCase()
+    },
+    {
+      key: 'currentPrice',
+      label: 'Price',
+      subLabel: '& 52W Range',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        stock.currentPrice ? (
+          <div>
+            <div className="font-medium">{formatCurrency(stock.currentPrice)}</div>
+            {stock.fiftyTwoWeekHigh && (
+              <div className="text-xs text-muted-foreground mt-1">
+                52W: {formatCurrency(stock.fiftyTwoWeekLow || 0)} - {formatCurrency(stock.fiftyTwoWeekHigh)}
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
+      ),
+      getValue: (stock) => stock.currentPrice || 0
+    },
+    {
+      key: 'priceChange',
+      label: 'Change',
+      subLabel: '₹ & %',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        stock.priceChange !== undefined && stock.priceChangePercent !== undefined ? (
+          <div className={`${stock.priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="flex items-center justify-end gap-1">
+              {stock.priceChange >= 0 ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              <span className="text-sm font-medium">
+                {formatCurrency(Math.abs(stock.priceChange))}
+              </span>
+            </div>
+            <div className="text-xs mt-1">
+              {formatPercentage(stock.priceChangePercent)}
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
+      ),
+      getValue: (stock) => stock.priceChange || 0
+    },
+    {
+      key: 'peRatio',
+      label: 'P/E',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        stock.peRatio !== null && stock.peRatio !== undefined && !isNaN(stock.peRatio) ? (
+          <div className="text-sm">{stock.peRatio.toFixed(2)}</div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
+      ),
+      getValue: (stock) => stock.peRatio || 0
+    },
+    {
+      key: 'marketCap',
+      label: 'Market Cap',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        stock.marketCap !== null && stock.marketCap !== undefined && !isNaN(stock.marketCap) ? (
+          <div className="text-sm">{formatMarketCap(stock.marketCap)}</div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
+      ),
+      getValue: (stock) => stock.marketCap || 0
+    },
+    {
+      key: 'priceToBook',
+      label: 'P/B',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        stock.priceToBook !== null && stock.priceToBook !== undefined && !isNaN(stock.priceToBook) ? (
+          <div className="text-sm">{stock.priceToBook.toFixed(2)}</div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
+      ),
+      getValue: (stock) => stock.priceToBook || 0
+    },
+    {
+      key: 'fiftyTwoWeekHighDistance',
+      label: 'Distance',
+      subLabel: 'from 52W High',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        stock.currentPrice && stock.fiftyTwoWeekHigh ? (
+          <div>
+            <div className={`text-sm font-medium ${calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)! < 0
+                ? 'text-red-600'
+                : 'text-green-600'
+              }`}>
+              {formatFiftyTwoWeekHighDistance(
+                calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">from high</div>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )
+      ),
+      getValue: (stock) => calculateFiftyTwoWeekHighDistance(stock.currentPrice || 0, stock.fiftyTwoWeekHigh || 0) || -999
+    },
+    // Additional columns that can be easily enabled/disabled
+    {
+      key: 'volume',
+      label: 'Volume',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        <div className="text-sm">
+          {/* Volume data would come from API - placeholder for now */}
+          <span className="text-muted-foreground">-</span>
+        </div>
+      ),
+      getValue: (stock) => 0 // Placeholder
+    },
+    {
+      key: 'dayRange',
+      label: 'Day Range',
+      subLabel: 'Low - High',
+      align: 'right',
+      sortable: false,
+      render: (stock) => (
+        <div className="text-xs">
+          {/* Day range data would come from API - placeholder for now */}
+          <span className="text-muted-foreground">-</span>
+        </div>
+      )
+    },
+    {
+      key: 'beta',
+      label: 'Beta',
+      align: 'right',
+      sortable: true,
+      render: (stock) => (
+        <div className="text-sm">
+          {/* Beta data would come from API - placeholder for now */}
+          <span className="text-muted-foreground">-</span>
+        </div>
+      ),
+      getValue: (stock) => 0 // Placeholder
+    }
+  ];
+
+  // Filter visible columns based on state
+  const visibleColumns = columnConfigs.filter(col => columnVisibility[col.key]);
+
+  const toggleColumnVisibility = (columnKey: string) => {
+    setColumnVisibility(prev => ({
+      ...prev,
+      [columnKey]: !prev[columnKey]
+    }));
+  };
+
   const getRefreshIntervalLabel = (interval: number) => {
     const minutes = interval / (1000 * 60);
     if (minutes < 60) {
@@ -347,43 +577,13 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   // Sort stocks based on current sort field and direction
   const sortedStocks = useMemo(() => {
     const stocks = [...watchlist.stocks];
+    const column = columnConfigs.find(col => col.key === sortField);
+
+    if (!column || !column.getValue) return stocks;
 
     return stocks.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (sortField) {
-        case 'name':
-          aValue = a.companyName.toLowerCase();
-          bValue = b.companyName.toLowerCase();
-          break;
-        case 'currentPrice':
-          aValue = a.currentPrice || 0;
-          bValue = b.currentPrice || 0;
-          break;
-        case 'priceChange':
-          aValue = a.priceChange || 0;
-          bValue = b.priceChange || 0;
-          break;
-        case 'peRatio':
-          aValue = a.peRatio || 0;
-          bValue = b.peRatio || 0;
-          break;
-        case 'marketCap':
-          aValue = a.marketCap || 0;
-          bValue = b.marketCap || 0;
-          break;
-        case 'priceToBook':
-          aValue = a.priceToBook || 0;
-          bValue = b.priceToBook || 0;
-          break;
-        case 'fiftyTwoWeekHighDistance':
-          aValue = calculateFiftyTwoWeekHighDistance(a.currentPrice || 0, a.fiftyTwoWeekHigh || 0) || -999;
-          bValue = calculateFiftyTwoWeekHighDistance(b.currentPrice || 0, b.fiftyTwoWeekHigh || 0) || -999;
-          break;
-        default:
-          return 0;
-      }
+      const aValue = column.getValue!(a);
+      const bValue = column.getValue!(b);
 
       if (sortField === 'name') {
         // String comparison
@@ -396,7 +596,7 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
         return sortDirection === 'asc' ? result : -result;
       }
     });
-  }, [watchlist.stocks, sortField, sortDirection]);
+  }, [watchlist.stocks, sortField, sortDirection, columnConfigs]);
 
   // Render sort icon
   const renderSortIcon = (field: SortField) => {
@@ -451,6 +651,33 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                    Show/Hide Columns
+                  </div>
+                  {columnConfigs.map((column) => (
+                    <DropdownMenuItem
+                      key={column.key}
+                      onClick={() => toggleColumnVisibility(column.key)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>{column.label}</span>
+                      {columnVisibility[column.key] ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="outline"
                 size="sm"
@@ -484,216 +711,79 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>
-                      <button
-                        className="flex items-center hover:text-foreground transition-colors"
-                        onClick={() => handleSort('name')}
+                    {visibleColumns.map((column) => (
+                      <TableHead
+                        key={column.key}
+                        className={`${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''} ${column.width || ''}`}
                       >
-                        Stock
-                        {renderSortIcon('name')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <button
-                        className="flex items-center ml-auto hover:text-foreground transition-colors"
-                        onClick={() => handleSort('currentPrice')}
-                      >
-                        <div className="text-right">
-                          <div>Price</div>
-                          <div className="text-xs font-normal text-muted-foreground">& 52W Range</div>
-                        </div>
-                        {renderSortIcon('currentPrice')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <button
-                        className="flex items-center ml-auto hover:text-foreground transition-colors"
-                        onClick={() => handleSort('priceChange')}
-                      >
-                        <div className="text-right">
-                          <div>Change</div>
-                          <div className="text-xs font-normal text-muted-foreground">₹ & %</div>
-                        </div>
-                        {renderSortIcon('priceChange')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <button
-                        className="flex items-center ml-auto hover:text-foreground transition-colors"
-                        onClick={() => handleSort('peRatio')}
-                      >
-                        P/E
-                        {renderSortIcon('peRatio')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <button
-                        className="flex items-center ml-auto hover:text-foreground transition-colors"
-                        onClick={() => handleSort('marketCap')}
-                      >
-                        Market Cap
-                        {renderSortIcon('marketCap')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <button
-                        className="flex items-center ml-auto hover:text-foreground transition-colors"
-                        onClick={() => handleSort('priceToBook')}
-                      >
-                        P/B
-                        {renderSortIcon('priceToBook')}
-                      </button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <button
-                        className="flex items-center ml-auto hover:text-foreground transition-colors"
-                        onClick={() => handleSort('fiftyTwoWeekHighDistance')}
-                      >
-                        <div className="text-right">
-                          <div>Distance</div>
-                          <div className="text-xs font-normal text-muted-foreground">from 52W High</div>
-                        </div>
-                        {renderSortIcon('fiftyTwoWeekHighDistance')}
-                      </button>
-                    </TableHead>
+                        {column.sortable ? (
+                          <button
+                            className={`flex items-center hover:text-foreground transition-colors ${column.align === 'right' ? 'ml-auto' : column.align === 'center' ? 'mx-auto' : ''
+                              }`}
+                            onClick={() => handleSort(column.key)}
+                          >
+                            {column.subLabel ? (
+                              <div className={column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}>
+                                <div>{column.label}</div>
+                                <div className="text-xs font-normal text-muted-foreground">{column.subLabel}</div>
+                              </div>
+                            ) : (
+                              column.label
+                            )}
+                            {renderSortIcon(column.key)}
+                          </button>
+                        ) : (
+                          <div className={column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}>
+                            {column.subLabel ? (
+                              <>
+                                <div>{column.label}</div>
+                                <div className="text-xs font-normal text-muted-foreground">{column.subLabel}</div>
+                              </>
+                            ) : (
+                              column.label
+                            )}
+                          </div>
+                        )}
+                      </TableHead>
+                    ))}
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedStocks.map((stock) => {
-                    return (
-                      <TableRow key={stock.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{stock.companyName}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {stock.symbol}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Added: {formatDate(stock.addedAt)}
-                              {stock.addedPrice && (
-                                <span className="ml-2">
-                                  @ {formatCurrency(stock.addedPrice)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                  {sortedStocks.map((stock) => (
+                    <TableRow key={stock.id}>
+                      {visibleColumns.map((column) => (
+                        <TableCell
+                          key={column.key}
+                          className={`${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}`}
+                        >
+                          {column.render(stock)}
                         </TableCell>
-
-                        <TableCell className="text-right">
-                          {stock.currentPrice ? (
-                            <div>
-                              <div className="font-medium">
-                                {formatCurrency(stock.currentPrice)}
-                              </div>
-                              {stock.fiftyTwoWeekHigh && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  52W: {formatCurrency(stock.fiftyTwoWeekLow || 0)} - {formatCurrency(stock.fiftyTwoWeekHigh)}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          {stock.priceChange !== undefined && stock.priceChangePercent !== undefined ? (
-                            <div className={`${stock.priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              <div className="flex items-center justify-end gap-1">
-                                {stock.priceChange >= 0 ? (
-                                  <TrendingUp className="h-3 w-3" />
-                                ) : (
-                                  <TrendingDown className="h-3 w-3" />
-                                )}
-                                <span className="text-sm font-medium">
-                                  {formatCurrency(Math.abs(stock.priceChange))}
-                                </span>
-                              </div>
-                              <div className="text-xs mt-1">
-                                {formatPercentage(stock.priceChangePercent)}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          {stock.peRatio !== null && stock.peRatio !== undefined && !isNaN(stock.peRatio) ? (
-                            <div className="text-sm">
-                              {stock.peRatio.toFixed(2)}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          {stock.marketCap !== null && stock.marketCap !== undefined && !isNaN(stock.marketCap) ? (
-                            <div className="text-sm">
-                              {formatMarketCap(stock.marketCap)}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          {stock.priceToBook !== null && stock.priceToBook !== undefined && !isNaN(stock.priceToBook) ? (
-                            <div className="text-sm">
-                              {stock.priceToBook.toFixed(2)}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          {stock.currentPrice && stock.fiftyTwoWeekHigh ? (
-                            <div>
-                              <div className={`text-sm font-medium ${calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)! < 0
-                                  ? 'text-red-600'
-                                  : 'text-green-600'
-                                }`}>
-                                {formatFiftyTwoWeekHighDistance(
-                                  calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)
-                                )}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                from high
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openMoveDialog(stock)}>
-                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                Move to Another Watchlist
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openDeleteDialog(stock)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Remove
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                      ))}
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openMoveDialog(stock)}>
+                              <ArrowRightLeft className="h-4 w-4 mr-2" />
+                              Move to Another Watchlist
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => openDeleteDialog(stock)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Remove
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
