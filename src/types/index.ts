@@ -89,6 +89,9 @@ export interface WatchlistStock {
   peRatio?: number | null;
   marketCap?: number | null;
   priceToBook?: number | null;
+  // 52-week range
+  fiftyTwoWeekHigh?: number | null;
+  fiftyTwoWeekLow?: number | null;
 }
 
 // NSE Company interfaces

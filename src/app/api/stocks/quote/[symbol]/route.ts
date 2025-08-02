@@ -58,6 +58,9 @@ export async function GET(
           epsTrailingTwelveMonths: quote.defaultKeyStatistics?.trailingEps || null,
           trailingAnnualDividendYield: null,
           beta: quote.summaryDetail?.beta || null,
+          // 52-week range from summaryDetail
+          fiftyTwoWeekHigh: quote.summaryDetail?.fiftyTwoWeekHigh || null,
+          fiftyTwoWeekLow: quote.summaryDetail?.fiftyTwoWeekLow || null,
           //Company Profile
           industry: quote.summaryProfile?.industry,
           sector: quote.summaryProfile?.sector

@@ -21,6 +21,9 @@ interface CachedPrice {
     epsTrailingTwelveMonths?: number | null;
     trailingAnnualDividendYield?: number | null;
     beta?: number | null;
+    // 52-week range
+    fiftyTwoWeekHigh?: number | null;
+    fiftyTwoWeekLow?: number | null;
     //Company Profile
     industry?: string;
     sector?: string;
@@ -45,6 +48,9 @@ interface PriceUpdateResult {
     epsTrailingTwelveMonths?: number | null;
     trailingAnnualDividendYield?: number | null;
     beta?: number | null;
+    // 52-week range
+    fiftyTwoWeekHigh?: number | null;
+    fiftyTwoWeekLow?: number | null;
 
     //Company Profile
     industry?: string;
@@ -115,6 +121,8 @@ class PriceUpdateService {
                 epsTrailingTwelveMonths: cached.epsTrailingTwelveMonths,
                 trailingAnnualDividendYield: cached.trailingAnnualDividendYield,
                 beta: cached.beta,
+                fiftyTwoWeekHigh: cached.fiftyTwoWeekHigh,
+                fiftyTwoWeekLow: cached.fiftyTwoWeekLow,
                 industry: cached.industry,
                 sector: cached.sector
             };
@@ -146,6 +154,8 @@ class PriceUpdateService {
                     epsTrailingTwelveMonths: previousCached.epsTrailingTwelveMonths,
                     trailingAnnualDividendYield: previousCached.trailingAnnualDividendYield,
                     beta: previousCached.beta,
+                    fiftyTwoWeekHigh: previousCached.fiftyTwoWeekHigh,
+                    fiftyTwoWeekLow: previousCached.fiftyTwoWeekLow,
                     industry: previousCached.industry,
                     sector: previousCached.sector
                 };
@@ -194,6 +204,8 @@ class PriceUpdateService {
                 epsTrailingTwelveMonths: data.epsTrailingTwelveMonths,
                 trailingAnnualDividendYield: data.trailingAnnualDividendYield,
                 beta: data.beta,
+                fiftyTwoWeekHigh: data.fiftyTwoWeekHigh,
+                fiftyTwoWeekLow: data.fiftyTwoWeekLow,
                 industry: data.industry,
                 sector: data.sector
             });
@@ -215,6 +227,8 @@ class PriceUpdateService {
                 epsTrailingTwelveMonths: data.epsTrailingTwelveMonths,
                 trailingAnnualDividendYield: data.trailingAnnualDividendYield,
                 beta: data.beta,
+                fiftyTwoWeekHigh: data.fiftyTwoWeekHigh,
+                fiftyTwoWeekLow: data.fiftyTwoWeekLow,
                 industry: data.industry,
                 sector: data.sector
             };
@@ -274,6 +288,8 @@ class PriceUpdateService {
                     epsTrailingTwelveMonths: cached.epsTrailingTwelveMonths,
                     trailingAnnualDividendYield: cached.trailingAnnualDividendYield,
                     beta: cached.beta,
+                    fiftyTwoWeekHigh: cached.fiftyTwoWeekHigh,
+                    fiftyTwoWeekLow: cached.fiftyTwoWeekLow,
                     industry: cached.industry,
                     sector: cached.sector
                 });
@@ -311,6 +327,8 @@ class PriceUpdateService {
                         epsTrailingTwelveMonths: previousCached.epsTrailingTwelveMonths,
                         trailingAnnualDividendYield: previousCached.trailingAnnualDividendYield,
                         beta: previousCached.beta,
+                        fiftyTwoWeekHigh: previousCached.fiftyTwoWeekHigh,
+                        fiftyTwoWeekLow: previousCached.fiftyTwoWeekLow,
                         industry: previousCached.industry,
                         sector: previousCached.sector
                         
@@ -373,6 +391,8 @@ class PriceUpdateService {
                                 epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
                                 trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
                                 beta: quote.beta,
+                                fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+                                fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
                                 industry: quote.industry,
                                 sector: quote.sector
                             });
@@ -394,6 +414,8 @@ class PriceUpdateService {
                                 epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
                                 trailingAnnualDividendYield: quote.trailingAnnualDividendYield,
                                 beta: quote.beta,
+                                fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+                                fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
                                 industry: quote.industry,
                                 sector: quote.sector
                             });

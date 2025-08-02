@@ -51,7 +51,7 @@ import { getMarketStatus } from '@/lib/utils/marketHours';
 import PriceUpdateService from '@/lib/services/priceUpdateService';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils/dateUtils';
 
-type SortField = 'name' | 'currentPrice' | 'priceChange' | 'peRatio' | 'marketCap' | 'priceToBook';
+type SortField = 'name' | 'currentPrice' | 'priceChange' | 'peRatio' | 'marketCap' | 'priceToBook' | 'fiftyTwoWeekHighDistance';
 type SortDirection = 'asc' | 'desc';
 
 interface WatchlistDisplayProps {
@@ -116,6 +116,8 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
               peRatio: priceResult.trailingPE || priceResult.forwardPE || null,
               marketCap: priceResult.marketCap || null,
               priceToBook: priceResult.priceToBook || null,
+              fiftyTwoWeekHigh: priceResult.fiftyTwoWeekHigh || null,
+              fiftyTwoWeekLow: priceResult.fiftyTwoWeekLow || null,
             };
           }
 
@@ -127,6 +129,8 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
             peRatio: stock.peRatio,
             marketCap: stock.marketCap,
             priceToBook: stock.priceToBook,
+            fiftyTwoWeekHigh: stock.fiftyTwoWeekHigh,
+            fiftyTwoWeekLow: stock.fiftyTwoWeekLow,
           };
         });
 
@@ -193,6 +197,8 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                 peRatio: priceResult.trailingPE || priceResult.forwardPE || null,
                 marketCap: priceResult.marketCap || null,
                 priceToBook: priceResult.priceToBook || null,
+                fiftyTwoWeekHigh: priceResult.fiftyTwoWeekHigh || null,
+                fiftyTwoWeekLow: priceResult.fiftyTwoWeekLow || null,
               };
             }
 
@@ -204,6 +210,8 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
               peRatio: stock.peRatio,
               marketCap: stock.marketCap,
               priceToBook: stock.priceToBook,
+              fiftyTwoWeekHigh: stock.fiftyTwoWeekHigh,
+              fiftyTwoWeekLow: stock.fiftyTwoWeekLow,
             };
           });
 
@@ -302,6 +310,19 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
     return `₹${formatNumber(crores)}Cr`;
   };
 
+  const calculateFiftyTwoWeekHighDistance = (currentPrice: number, fiftyTwoWeekHigh: number) => {
+    if (!currentPrice || !fiftyTwoWeekHigh) return null;
+    const distance = ((currentPrice - fiftyTwoWeekHigh) / fiftyTwoWeekHigh) * 100;
+    return distance;
+  };
+
+  const formatFiftyTwoWeekHighDistance = (distance: number | null) => {
+    if (distance === null) return '-';
+    const isNegative = distance < 0;
+    const absDistance = Math.abs(distance);
+    return `${isNegative ? '-' : '+'}${absDistance.toFixed(1)}%`;
+  };
+
   const getRefreshIntervalLabel = (interval: number) => {
     const minutes = interval / (1000 * 60);
     if (minutes < 60) {
@@ -355,6 +376,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
         case 'priceToBook':
           aValue = a.priceToBook || 0;
           bValue = b.priceToBook || 0;
+          break;
+        case 'fiftyTwoWeekHighDistance':
+          aValue = calculateFiftyTwoWeekHighDistance(a.currentPrice || 0, a.fiftyTwoWeekHigh || 0) || -999;
+          bValue = calculateFiftyTwoWeekHighDistance(b.currentPrice || 0, b.fiftyTwoWeekHigh || 0) || -999;
           break;
         default:
           return 0;
@@ -473,7 +498,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                         className="flex items-center ml-auto hover:text-foreground transition-colors"
                         onClick={() => handleSort('currentPrice')}
                       >
-                        Current Price
+                        <div className="text-right">
+                          <div>Price</div>
+                          <div className="text-xs font-normal text-muted-foreground">& 52W Range</div>
+                        </div>
                         {renderSortIcon('currentPrice')}
                       </button>
                     </TableHead>
@@ -482,7 +510,10 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                         className="flex items-center ml-auto hover:text-foreground transition-colors"
                         onClick={() => handleSort('priceChange')}
                       >
-                        Change
+                        <div className="text-right">
+                          <div>Change</div>
+                          <div className="text-xs font-normal text-muted-foreground">₹ & %</div>
+                        </div>
                         {renderSortIcon('priceChange')}
                       </button>
                     </TableHead>
@@ -513,6 +544,18 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                         {renderSortIcon('priceToBook')}
                       </button>
                     </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="flex items-center ml-auto hover:text-foreground transition-colors"
+                        onClick={() => handleSort('fiftyTwoWeekHighDistance')}
+                      >
+                        <div className="text-right">
+                          <div>Distance</div>
+                          <div className="text-xs font-normal text-muted-foreground">from 52W High</div>
+                        </div>
+                        {renderSortIcon('fiftyTwoWeekHighDistance')}
+                      </button>
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -539,8 +582,15 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
 
                         <TableCell className="text-right">
                           {stock.currentPrice ? (
-                            <div className="font-medium">
-                              {formatCurrency(stock.currentPrice)}
+                            <div>
+                              <div className="font-medium">
+                                {formatCurrency(stock.currentPrice)}
+                              </div>
+                              {stock.fiftyTwoWeekHigh && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  52W: {formatCurrency(stock.fiftyTwoWeekLow || 0)} - {formatCurrency(stock.fiftyTwoWeekHigh)}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
@@ -549,16 +599,19 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
 
                         <TableCell className="text-right">
                           {stock.priceChange !== undefined && stock.priceChangePercent !== undefined ? (
-                            <div className={`flex items-center justify-end gap-1 ${stock.priceChange >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {stock.priceChange >= 0 ? (
-                                <TrendingUp className="h-3 w-3" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3" />
-                              )}
-                              <div className="text-sm">
-                                <div>{formatCurrency(Math.abs(stock.priceChange))}</div>
-                                <div>{formatPercentage(stock.priceChangePercent)}</div>
+                            <div className={`${stock.priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <div className="flex items-center justify-end gap-1">
+                                {stock.priceChange >= 0 ? (
+                                  <TrendingUp className="h-3 w-3" />
+                                ) : (
+                                  <TrendingDown className="h-3 w-3" />
+                                )}
+                                <span className="text-sm font-medium">
+                                  {formatCurrency(Math.abs(stock.priceChange))}
+                                </span>
+                              </div>
+                              <div className="text-xs mt-1">
+                                {formatPercentage(stock.priceChangePercent)}
                               </div>
                             </div>
                           ) : (
@@ -590,6 +643,26 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                           {stock.priceToBook !== null && stock.priceToBook !== undefined && !isNaN(stock.priceToBook) ? (
                             <div className="text-sm">
                               {stock.priceToBook.toFixed(2)}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          {stock.currentPrice && stock.fiftyTwoWeekHigh ? (
+                            <div>
+                              <div className={`text-sm font-medium ${calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)! < 0
+                                  ? 'text-red-600'
+                                  : 'text-green-600'
+                                }`}>
+                                {formatFiftyTwoWeekHighDistance(
+                                  calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                from high
+                              </div>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>

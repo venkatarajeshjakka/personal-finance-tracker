@@ -53,6 +53,8 @@ export const addStockToWatchlist = createAsyncThunk(
       peRatio: priceResult.success ? (priceResult.trailingPE || priceResult.forwardPE) : null,
       marketCap: priceResult.success ? priceResult.marketCap : null,
       priceToBook: priceResult.success ? priceResult.priceToBook : null,
+      fiftyTwoWeekHigh: priceResult.success ? priceResult.fiftyTwoWeekHigh : null,
+      fiftyTwoWeekLow: priceResult.success ? priceResult.fiftyTwoWeekLow : null,
       lastUpdated: priceResult.success ? new Date() : undefined
     };
 
@@ -178,6 +180,8 @@ export const updateStockPrices = createAsyncThunk(
       peRatio?: number | null;
       marketCap?: number | null;
       priceToBook?: number | null;
+      fiftyTwoWeekHigh?: number | null;
+      fiftyTwoWeekLow?: number | null;
     }>
   }) => {
     const watchlist = StorageService.getWatchlist(watchlistId);
@@ -196,6 +200,8 @@ export const updateStockPrices = createAsyncThunk(
           peRatio: update.peRatio,
           marketCap: update.marketCap,
           priceToBook: update.priceToBook,
+          fiftyTwoWeekHigh: update.fiftyTwoWeekHigh,
+          fiftyTwoWeekLow: update.fiftyTwoWeekLow,
           lastUpdated: new Date()
         };
       }
