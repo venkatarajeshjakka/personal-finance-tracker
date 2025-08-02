@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/store';
 import { updateStockPrices, removeStockFromWatchlist } from '@/lib/redux/slices/watchlistsSlice';
 import { loadPriceUpdateSettings } from '@/lib/redux/slices/settingsSlice';
@@ -41,12 +41,18 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { shouldUpdatePrices, getMarketStatus } from '@/lib/utils/marketHours';
+import { getMarketStatus } from '@/lib/utils/marketHours';
 import PriceUpdateService from '@/lib/services/priceUpdateService';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils/dateUtils';
+
+type SortField = 'name' | 'currentPrice' | 'priceChange' | 'peRatio' | 'marketCap' | 'priceToBook';
+type SortDirection = 'asc' | 'desc';
 
 interface WatchlistDisplayProps {
   watchlist: Watchlist;
@@ -61,20 +67,37 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   const [stockToDelete, setStockToDelete] = useState<WatchlistStock | null>(null);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [stockToMove, setStockToMove] = useState<WatchlistStock | null>(null);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const handleRefreshPrices = useCallback(async (forceRefresh = false) => {
+  // Use refs to store current values without causing re-renders
+  const settingsRef = useRef(priceUpdateSettings);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const watchlistRef = useRef(watchlist);
+
+  // Update refs when values change
+  useEffect(() => {
+    settingsRef.current = priceUpdateSettings;
+  }, [priceUpdateSettings]);
+
+  useEffect(() => {
+    watchlistRef.current = watchlist;
+  }, [watchlist]);
+
+  const handleRefreshPrices = useCallback(async (forceRefresh = false, showToast = true) => {
     if (watchlist.stocks.length === 0) return;
 
     setRefreshing(true);
     try {
       const symbols = watchlist.stocks.map(stock => stock.symbol);
+      const currentSettings = settingsRef.current;
 
       // Use PriceUpdateService instead of direct API call (same as dashboard)
       const bulkResult = forceRefresh
         ? await PriceUpdateService.forceFetchBulkStockPrices(symbols)
         : await PriceUpdateService.getBulkStockPrices(symbols, {
-          marketHoursOnly: priceUpdateSettings?.marketHoursOnly ?? true,
-          checkHolidays: priceUpdateSettings?.checkMarketHolidays ?? true
+          marketHoursOnly: currentSettings?.marketHoursOnly ?? true,
+          checkHolidays: currentSettings?.checkMarketHolidays ?? true
         });
 
       if (bulkResult.results && bulkResult.results.length > 0) {
@@ -115,23 +138,94 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
         const successCount = bulkResult.totalSuccess;
         const cachedCount = bulkResult.totalCached;
 
-        if (successCount > 0) {
-          toast.success(
-            `Stock prices updated (${successCount} stocks${cachedCount > 0 ? `, ${cachedCount} from cache` : ''})`
-          );
-        } else {
-          toast.warning('No stock prices were updated');
+        // Only show toast for manual refresh or when there are actual updates
+        if (showToast && (forceRefresh || successCount > 0)) {
+          if (successCount > 0) {
+            toast.success(
+              `Stock prices updated (${successCount} stocks${cachedCount > 0 ? `, ${cachedCount} from cache` : ''})`
+            );
+          } else if (forceRefresh) {
+            toast.warning('No stock prices were updated');
+          }
         }
       }
     } catch (error) {
-      toast.error('Failed to refresh stock prices');
+      if (showToast) {
+        toast.error('Failed to refresh stock prices');
+      }
+      console.error('Price refresh error:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [dispatch, watchlist.id, watchlist.stocks, priceUpdateSettings?.marketHoursOnly, priceUpdateSettings?.checkMarketHolidays]);
+  }, [dispatch, watchlist.id, watchlist.stocks]);
+
+  // Auto-refresh function using refs to avoid dependencies
+  const autoRefreshPricesRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Update the ref function whenever dispatch changes
+  useEffect(() => {
+    autoRefreshPricesRef.current = async () => {
+      const currentWatchlist = watchlistRef.current;
+      if (currentWatchlist.stocks.length === 0) return;
+
+      try {
+        const symbols = currentWatchlist.stocks.map(stock => stock.symbol);
+        const currentSettings = settingsRef.current;
+
+        const bulkResult = await PriceUpdateService.getBulkStockPrices(symbols, {
+          marketHoursOnly: currentSettings?.marketHoursOnly ?? true,
+          checkHolidays: currentSettings?.checkMarketHolidays ?? true
+        });
+
+        if (bulkResult.results && bulkResult.results.length > 0) {
+          const priceUpdates = currentWatchlist.stocks.map(stock => {
+            const formattedSymbol = stock.symbol.includes('.') ? stock.symbol : `${stock.symbol}.NS`;
+            const priceResult = bulkResult.results.find(result =>
+              result.symbol === formattedSymbol && result.success
+            );
+
+            if (priceResult && priceResult.price !== undefined) {
+              return {
+                stockId: stock.id,
+                currentPrice: priceResult.price,
+                priceChange: priceResult.change || 0,
+                priceChangePercent: priceResult.changePercent || 0,
+                peRatio: priceResult.trailingPE || priceResult.forwardPE || null,
+                marketCap: priceResult.marketCap || null,
+                priceToBook: priceResult.priceToBook || null,
+              };
+            }
+
+            return {
+              stockId: stock.id,
+              currentPrice: stock.currentPrice || 0,
+              priceChange: stock.priceChange || 0,
+              priceChangePercent: stock.priceChangePercent || 0,
+              peRatio: stock.peRatio,
+              marketCap: stock.marketCap,
+              priceToBook: stock.priceToBook,
+            };
+          });
+
+          await dispatch(updateStockPrices({
+            watchlistId: currentWatchlist.id,
+            priceUpdates,
+          })).unwrap();
+        }
+      } catch (error) {
+        console.error('Auto-refresh error:', error);
+      }
+    };
+  }, [dispatch]);
 
   // Auto-refresh prices based on settings
   useEffect(() => {
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     // Wait for settings to load and ensure auto-refresh is enabled
     if (settingsLoading ||
       !priceUpdateSettings ||
@@ -140,14 +234,24 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
       return;
     }
 
-    const interval = setInterval(() => {
-      handleRefreshPrices();
+    // Initial refresh when component mounts (silent)
+    autoRefreshPricesRef.current?.();
+
+    // Set up interval for auto-refresh
+    intervalRef.current = setInterval(() => {
+      // Always try to refresh, let the service handle market hours logic (silent auto-refresh)
+      console.log('Auto-refreshing watchlist prices...');
+      autoRefreshPricesRef.current?.();
     }, priceUpdateSettings.refreshInterval);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [
     watchlist.stocks.length,
-    handleRefreshPrices,
     settingsLoading,
     priceUpdateSettings?.autoRefreshEnabled,
     priceUpdateSettings?.refreshInterval
@@ -187,7 +291,9 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
   };
 
   const formatPercentage = (value: number) => {
-    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+    // Convert decimal to percentage (e.g., 0.0196 -> 1.96%)
+    const percentage = value * 100;
+    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
   const formatMarketCap = (value: number) => {
@@ -207,6 +313,76 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
 
   const marketStatus = getMarketStatus();
 
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort stocks based on current sort field and direction
+  const sortedStocks = useMemo(() => {
+    const stocks = [...watchlist.stocks];
+
+    return stocks.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'name':
+          aValue = a.companyName.toLowerCase();
+          bValue = b.companyName.toLowerCase();
+          break;
+        case 'currentPrice':
+          aValue = a.currentPrice || 0;
+          bValue = b.currentPrice || 0;
+          break;
+        case 'priceChange':
+          aValue = a.priceChange || 0;
+          bValue = b.priceChange || 0;
+          break;
+        case 'peRatio':
+          aValue = a.peRatio || 0;
+          bValue = b.peRatio || 0;
+          break;
+        case 'marketCap':
+          aValue = a.marketCap || 0;
+          bValue = b.marketCap || 0;
+          break;
+        case 'priceToBook':
+          aValue = a.priceToBook || 0;
+          bValue = b.priceToBook || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortField === 'name') {
+        // String comparison
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      } else {
+        // Numeric comparison
+        const result = aValue - bValue;
+        return sortDirection === 'asc' ? result : -result;
+      }
+    });
+  }, [watchlist.stocks, sortField, sortDirection]);
+
+  // Render sort icon
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
   // Load price update settings on mount
   useEffect(() => {
     dispatch(loadPriceUpdateSettings());
@@ -223,6 +399,16 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
       window.removeEventListener('priceUpdateSettingsChanged', handleSettingsChange);
     };
   }, [dispatch]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
 
 
@@ -273,17 +459,65 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Stock</TableHead>
-                    <TableHead className="text-right">Current Price</TableHead>
-                    <TableHead className="text-right">Change</TableHead>
-                    <TableHead className="text-right">P/E</TableHead>
-                    <TableHead className="text-right">Market Cap</TableHead>
-                    <TableHead className="text-right">P/B</TableHead>
+                    <TableHead>
+                      <button
+                        className="flex items-center hover:text-foreground transition-colors"
+                        onClick={() => handleSort('name')}
+                      >
+                        Stock
+                        {renderSortIcon('name')}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="flex items-center ml-auto hover:text-foreground transition-colors"
+                        onClick={() => handleSort('currentPrice')}
+                      >
+                        Current Price
+                        {renderSortIcon('currentPrice')}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="flex items-center ml-auto hover:text-foreground transition-colors"
+                        onClick={() => handleSort('priceChange')}
+                      >
+                        Change
+                        {renderSortIcon('priceChange')}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="flex items-center ml-auto hover:text-foreground transition-colors"
+                        onClick={() => handleSort('peRatio')}
+                      >
+                        P/E
+                        {renderSortIcon('peRatio')}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="flex items-center ml-auto hover:text-foreground transition-colors"
+                        onClick={() => handleSort('marketCap')}
+                      >
+                        Market Cap
+                        {renderSortIcon('marketCap')}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        className="flex items-center ml-auto hover:text-foreground transition-colors"
+                        onClick={() => handleSort('priceToBook')}
+                      >
+                        P/B
+                        {renderSortIcon('priceToBook')}
+                      </button>
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {watchlist.stocks.map((stock) => {
+                  {sortedStocks.map((stock) => {
                     return (
                       <TableRow key={stock.id}>
                         <TableCell>
@@ -418,16 +652,20 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span>
+                  <span className="flex items-center gap-1">
                     Auto-refresh:
-                    <span className={`ml-1 font-medium ${priceUpdateSettings?.autoRefreshEnabled
+                    <span className={`ml-1 font-medium flex items-center gap-1 ${priceUpdateSettings?.autoRefreshEnabled
                       ? 'text-green-600'
                       : 'text-red-600'
                       }`}>
-                      {priceUpdateSettings?.autoRefreshEnabled
-                        ? `${getRefreshIntervalLabel(priceUpdateSettings.refreshInterval || 3600000)}`
-                        : 'Off'
-                      }
+                      {priceUpdateSettings?.autoRefreshEnabled ? (
+                        <>
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          {getRefreshIntervalLabel(priceUpdateSettings.refreshInterval || 3600000)}
+                        </>
+                      ) : (
+                        'Off'
+                      )}
                     </span>
                   </span>
                 </div>
