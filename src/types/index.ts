@@ -2,9 +2,13 @@
 export interface CompanyFinancials {
   id: string;
   company: string;
+  symbol?: string; // NSE symbol for Yahoo Finance API integration
   price: string;
   market_cap: string;
   PE_ratio: string;
+  // Company Profile
+  industry?: string;
+  sector?: string;
   financials: {
     YOY: {
       sales_growth: string;
@@ -66,9 +70,50 @@ export interface Watchlist {
   name: string;
   description?: string;
   userId: string;
-  symbols: string[];
+  stocks: WatchlistStock[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface WatchlistStock {
+  id: string;
+  symbol: string;
+  companyName: string;
+  addedAt: Date;
+  addedPrice?: number; // Price when added to watchlist
+  currentPrice?: number;
+  priceChange?: number;
+  priceChangePercent?: number;
+  lastUpdated?: Date;
+  // Additional financial metrics
+  peRatio?: number | null;
+  marketCap?: number | null;
+  priceToBook?: number | null;
+}
+
+// NSE Company interfaces
+export interface NSECompany {
+  id: string;
+  symbol: string;
+  companyName: string;
+  series: string;
+  dateOfListing: string;
+  paidUpValue: number;
+  marketLot: number;
+  isinNumber: string;
+  faceValue: number;
+  createdAt: Date;
+}
+
+export interface NSECompanyCSVRow {
+  SYMBOL: string;
+  'NAME OF COMPANY': string;
+  SERIES: string;
+  'DATE OF LISTING': string;
+  'PAID UP VALUE': string;
+  'MARKET LOT': string;
+  'ISIN NUMBER': string;
+  'FACE VALUE': string;
 }
 
 // Storage interfaces
@@ -84,6 +129,10 @@ export interface StoredWatchlists {
   [watchlistId: string]: Watchlist;
 }
 
+export interface StoredNSECompanies {
+  [symbol: string]: NSECompany;
+}
+
 export interface UserPreferences {
   defaultQuarter: string;
   defaultYear: number;
@@ -96,8 +145,10 @@ export interface RootState {
   companies: CompaniesState;
   portfolios: PortfoliosState;
   watchlists: WatchlistsState;
+  nseCompanies: NSECompaniesState;
   filters: FiltersState;
   ui: UIState;
+  settings: SettingsState;
 }
 
 export interface CompaniesState {
@@ -106,6 +157,7 @@ export interface CompaniesState {
   error: string | null;
   selectedQuarter: string;
   selectedYear: number;
+  duplicates: { [key: string]: CompanyFinancials[] };
 }
 
 export interface PortfoliosState {
@@ -130,10 +182,36 @@ export interface FiltersState {
   searchTerm: string;
 }
 
+export interface NSECompaniesState {
+  data: NSECompany[];
+  loading: boolean;
+  error: string | null;
+  searchTerm: string;
+  uploadProgress: number;
+  duplicates: DuplicateReport | null;
+}
+
 export interface UIState {
   sidebarOpen: boolean;
   theme: 'light' | 'dark';
   notifications: Notification[];
+}
+
+export interface SettingsState {
+  marketCapThresholds: {
+    microCap: number;
+    smallCap: number;
+    midCap: number;
+    largeCap: number;
+  };
+  priceUpdateSettings: {
+    refreshInterval: number;
+    marketHoursOnly: boolean;
+    checkMarketHolidays: boolean;
+    autoRefreshEnabled: boolean;
+  };
+  loading: boolean;
+  error: string | null;
 }
 
 export interface Notification {
@@ -227,4 +305,36 @@ export class DataError extends Error {
     super(message);
     this.name = 'DataError';
   }
+}
+
+// CSV Processing interfaces
+export interface DuplicateReport {
+  duplicates: Array<{
+    symbol: string;
+    indices: number[];
+    companyNames: string[];
+  }>;
+  totalDuplicates: number;
+}
+
+export interface MatchResult {
+  match: NSECompany | null;
+  confidence: number;
+  suggestions: NSECompany[];
+}
+
+export interface CSVValidationResult {
+  isValid: boolean;
+  errors: Array<{
+    row: number;
+    field: string;
+    message: string;
+  }>;
+  warnings: Array<{
+    row: number;
+    field: string;
+    message: string;
+  }>;
+  processedCount: number;
+  duplicateCount: number;
 }
