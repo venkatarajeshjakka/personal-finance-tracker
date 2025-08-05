@@ -93,9 +93,9 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
     marketCap: true,
     priceToBook: true,
     fiftyTwoWeekHighDistance: true,
-    volume: false,
+    volume: false, // Enable volume by default to show wider table
     dayRange: false,
-    beta: false
+    beta: false // Enable beta by default to show wider table
   });
 
   // Use refs to store current values without causing re-renders
@@ -486,8 +486,8 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
         stock.currentPrice && stock.fiftyTwoWeekHigh ? (
           <div>
             <div className={`text-sm font-medium ${calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)! < 0
-                ? 'text-red-600'
-                : 'text-green-600'
+              ? 'text-red-600'
+              : 'text-green-600'
               }`}>
               {formatFiftyTwoWeekHighDistance(
                 calculateFiftyTwoWeekHighDistance(stock.currentPrice, stock.fiftyTwoWeekHigh)
@@ -639,7 +639,7 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
 
   return (
     <>
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -695,9 +695,9 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-0">
           {watchlist.stocks.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-8 px-6">
               <p className="text-muted-foreground mb-4">
                 No stocks in this watchlist yet
               </p>
@@ -707,91 +707,93 @@ export function WatchlistDisplay({ watchlist }: WatchlistDisplayProps) {
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {visibleColumns.map((column) => (
-                      <TableHead
-                        key={column.key}
-                        className={`${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''} ${column.width || ''}`}
-                      >
-                        {column.sortable ? (
-                          <button
-                            className={`flex items-center hover:text-foreground transition-colors ${column.align === 'right' ? 'ml-auto' : column.align === 'center' ? 'mx-auto' : ''
-                              }`}
-                            onClick={() => handleSort(column.key)}
-                          >
-                            {column.subLabel ? (
-                              <div className={column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}>
-                                <div>{column.label}</div>
-                                <div className="text-xs font-normal text-muted-foreground">{column.subLabel}</div>
-                              </div>
-                            ) : (
-                              column.label
-                            )}
-                            {renderSortIcon(column.key)}
-                          </button>
-                        ) : (
-                          <div className={column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}>
-                            {column.subLabel ? (
-                              <>
-                                <div>{column.label}</div>
-                                <div className="text-xs font-normal text-muted-foreground">{column.subLabel}</div>
-                              </>
-                            ) : (
-                              column.label
-                            )}
-                          </div>
-                        )}
-                      </TableHead>
-                    ))}
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedStocks.map((stock) => (
-                    <TableRow key={stock.id}>
+            <div className="px-6">
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-full">
+                  <TableHeader>
+                    <TableRow>
                       {visibleColumns.map((column) => (
-                        <TableCell
+                        <TableHead
                           key={column.key}
-                          className={`${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}`}
+                          className={`${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''} ${column.width || ''}`}
                         >
-                          {column.render(stock)}
-                        </TableCell>
-                      ))}
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openMoveDialog(stock)}>
-                              <ArrowRightLeft className="h-4 w-4 mr-2" />
-                              Move to Another Watchlist
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => openDeleteDialog(stock)}
-                              className="text-destructive"
+                          {column.sortable ? (
+                            <button
+                              className={`flex items-center hover:text-foreground transition-colors ${column.align === 'right' ? 'ml-auto' : column.align === 'center' ? 'mx-auto' : ''
+                                }`}
+                              onClick={() => handleSort(column.key)}
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Remove
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                              {column.subLabel ? (
+                                <div className={column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}>
+                                  <div>{column.label}</div>
+                                  <div className="text-xs font-normal text-muted-foreground">{column.subLabel}</div>
+                                </div>
+                              ) : (
+                                column.label
+                              )}
+                              {renderSortIcon(column.key)}
+                            </button>
+                          ) : (
+                            <div className={column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}>
+                              {column.subLabel ? (
+                                <>
+                                  <div>{column.label}</div>
+                                  <div className="text-xs font-normal text-muted-foreground">{column.subLabel}</div>
+                                </>
+                              ) : (
+                                column.label
+                              )}
+                            </div>
+                          )}
+                        </TableHead>
+                      ))}
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedStocks.map((stock) => (
+                      <TableRow key={stock.id}>
+                        {visibleColumns.map((column) => (
+                          <TableCell
+                            key={column.key}
+                            className={`${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : ''}`}
+                          >
+                            {column.render(stock)}
+                          </TableCell>
+                        ))}
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openMoveDialog(stock)}>
+                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                Move to Another Watchlist
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => openDeleteDialog(stock)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
 
           {watchlist.stocks.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="mt-4 px-6 space-y-2">
+              <div className="flex items-center justify-between text-sm text-muted-foreground pb-4">
                 <div className="flex items-center gap-4">
                   <span>
                     Last updated: {watchlist.stocks.some(s => s.lastUpdated)

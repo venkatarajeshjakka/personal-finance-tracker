@@ -64,13 +64,13 @@ export function WatchlistManager() {
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>My Watchlists</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">My Watchlists</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="flex gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+              <div key={i} className="h-20 w-48 bg-muted animate-pulse rounded" />
             ))}
           </div>
         </CardContent>
@@ -81,38 +81,38 @@ export function WatchlistManager() {
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle>My Watchlists</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">My Watchlists</CardTitle>
         </CardHeader>
         <CardContent>
           {watchlists.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-4">
               <p className="text-muted-foreground text-sm">
                 No watchlists created yet
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-3">
               {watchlists.map((watchlist) => (
                 <div
                   key={watchlist.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                  className={`flex-shrink-0 p-3 rounded-lg border cursor-pointer transition-colors min-w-[200px] ${
                     selectedWatchlist === watchlist.id
                       ? 'bg-primary/10 border-primary'
                       : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handleSelectWatchlist(watchlist.id)}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium truncate">{watchlist.name}</h4>
+                      <h4 className="font-medium truncate text-sm">{watchlist.name}</h4>
                       {watchlist.description && (
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate mt-1">
                           {watchlist.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="text-xs">
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge variant="secondary" className="text-xs px-2 py-0.5">
                           {watchlist.stocks.length} stocks
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -122,8 +122,8 @@ export function WatchlistManager() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <MoreVertical className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">

@@ -29,7 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1">
-          <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <div className="container mx-auto px-4 py-6 max-w-[1600px]">
             {children}
           </div>
         </main>

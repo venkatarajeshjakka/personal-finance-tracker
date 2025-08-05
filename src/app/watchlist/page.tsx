@@ -29,7 +29,7 @@ export default function WatchlistPage() {
   if (!mounted) {
     return (
       <AppLayout>
-        <div className="space-y-6">
+        <div className="space-y-6 pb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Watchlists</h1>
@@ -42,13 +42,9 @@ export default function WatchlistPage() {
               Create Watchlist
             </Button>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <div className="animate-pulse bg-muted rounded-lg h-64"></div>
-            </div>
-            <div className="lg:col-span-3">
-              <div className="animate-pulse bg-muted rounded-lg h-64"></div>
-            </div>
+          <div className="space-y-6">
+            <div className="animate-pulse bg-muted rounded-lg h-16"></div>
+            <div className="animate-pulse bg-muted rounded-lg h-96"></div>
           </div>
         </div>
       </AppLayout>
@@ -57,7 +53,7 @@ export default function WatchlistPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Watchlists</h1>
@@ -71,29 +67,27 @@ export default function WatchlistPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Watchlist Manager - Left sidebar */}
-          <div className="lg:col-span-1">
-            <WatchlistManager />
-          </div>
+        {/* Compact Watchlist Manager - Horizontal layout */}
+        <div className="mb-6">
+          <WatchlistManager />
+        </div>
 
-          {/* Watchlist Display - Main content */}
-          <div className="lg:col-span-3">
-            {selectedWatchlistData ? (
-              <WatchlistDisplay watchlist={selectedWatchlistData} />
-            ) : (
-              <div className="rounded-lg border bg-card p-8 text-center">
-                <h3 className="text-lg font-medium mb-2">No Watchlist Selected</h3>
-                <p className="text-muted-foreground mb-4">
-                  Select a watchlist from the sidebar or create a new one to get started.
-                </p>
-                <Button onClick={() => setShowCreateDialog(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Watchlist
-                </Button>
-              </div>
-            )}
-          </div>
+        {/* Full-width Watchlist Display */}
+        <div className="w-full">
+          {selectedWatchlistData ? (
+            <WatchlistDisplay watchlist={selectedWatchlistData} />
+          ) : (
+            <div className="rounded-lg border bg-card p-8 text-center">
+              <h3 className="text-lg font-medium mb-2">No Watchlist Selected</h3>
+              <p className="text-muted-foreground mb-4">
+                Select a watchlist from above or create a new one to get started.
+              </p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Watchlist
+              </Button>
+            </div>
+          )}
         </div>
 
         <CreateWatchlistDialog
