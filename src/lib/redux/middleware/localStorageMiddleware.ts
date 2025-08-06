@@ -78,11 +78,6 @@ export const localStorageMiddleware: Middleware<{}, RootState> = (store) => (nex
       StorageService.saveUserPreferences(preferences);
     }
 
-    // For data sync actions, the actual localStorage operations are handled
-    // by the async thunks in the slices, so we don't need to duplicate them here.
-    // This middleware is mainly for preference syncing and any additional
-    // cross-cutting concerns.
-
     // Log sync actions in development
     if (process.env.NODE_ENV === 'development' && typeof action === 'object' && action !== null && 'type' in action &&
       SYNC_ACTIONS.some(actionType => action.type === actionType)) {

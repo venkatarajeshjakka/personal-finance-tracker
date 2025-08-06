@@ -8,6 +8,7 @@ import {
   StoredPortfolios,
   StoredWatchlists,
   StoredNSECompanies,
+
   ValidationResult,
   ValidationError,
   DataError
@@ -449,6 +450,7 @@ export class StorageService {
       watchlists: this.getAllWatchlists(),
       nseCompanies: this.getAllNSECompanies(),
       preferences: this.getUserPreferences(),
+
       exportDate: new Date().toISOString()
     };
     return JSON.stringify(data, null, 2);
@@ -494,10 +496,14 @@ export class StorageService {
         localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(data.preferences));
       }
 
+
+
       return true;
     } catch (error) {
       console.error('Failed to import data:', error);
       return false;
     }
   }
+
+
 }

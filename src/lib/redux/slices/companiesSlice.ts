@@ -406,4 +406,17 @@ export const {
   clearDuplicates
 } = companiesSlice.actions;
 
+// Selectors
+export const selectCompanyBySymbol = (state: { companies: CompaniesState }, symbol: string) =>
+  state.companies.data.find(company => company.symbol === symbol);
+
+export const selectAllCompanies = (state: { companies: CompaniesState }) =>
+  state.companies.data;
+
+export const selectCompaniesLoading = (state: { companies: CompaniesState }) =>
+  state.companies.loading;
+
+export const selectCompaniesError = (state: { companies: CompaniesState }) =>
+  state.companies.error;
+
 export default companiesSlice.reducer;

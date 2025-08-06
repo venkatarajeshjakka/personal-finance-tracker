@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NSECompanyManager } from '@/components/settings/NSECompanyManager';
 import { MarketCapSettings } from '@/components/settings/MarketCapSettings';
 import PriceUpdateSettings from '@/components/settings/PriceUpdateSettings';
+
 import { AppLayout } from '@/components/navigation';
 
 export default function SettingsPage() {
@@ -71,12 +72,25 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>API Settings</CardTitle>
                 <CardDescription>
-                  Configure external API integrations and settings
+                  External API configurations and integrations
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-muted-foreground">
-                  API settings will be implemented in a future update.
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <h3 className="font-medium mb-2">Technical Analysis</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Technical analysis charts are now powered by Yahoo Finance data and work without any API key configuration.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <span>Active - No configuration required</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    Future API integrations will be configured here.
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -341,3 +341,7 @@ export interface CSVValidationResult {
   processedCount: number;
   duplicateCount: number;
 }
+
+// Redux types
+export type { AppDispatch } from '@/lib/redux/store';
+

@@ -391,4 +391,17 @@ export const {
   updateWatchlistInState
 } = watchlistsSlice.actions;
 
+// Selectors
+export const selectAllWatchlists = (state: { watchlists: WatchlistsState }) =>
+  state.watchlists.data;
+
+export const selectWatchlistById = (state: { watchlists: WatchlistsState }, id: string) =>
+  state.watchlists.data.find(watchlist => watchlist.id === id);
+
+export const selectWatchlistsLoading = (state: { watchlists: WatchlistsState }) =>
+  state.watchlists.loading;
+
+export const selectWatchlistsError = (state: { watchlists: WatchlistsState }) =>
+  state.watchlists.error;
+
 export default watchlistsSlice.reducer;

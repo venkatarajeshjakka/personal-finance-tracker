@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Wallet,
   Upload,
+  LineChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -53,6 +54,12 @@ const navigation = [
     href: "/watchlist",
     icon: Eye,
     description: "Track your stocks",
+  },
+  {
+    name: "Technical Analysis",
+    href: "/technical-analysis",
+    icon: LineChart,
+    description: "Chart analysis tools",
   },
   {
     name: "Portfolios",
