@@ -5,7 +5,7 @@ import { createChart, CandlestickSeries } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 
@@ -25,6 +25,8 @@ const PERIOD_OPTIONS = [
     { value: '6mo', label: '6 Months' },
     { value: '1y', label: '1 Year' },
     { value: '2y', label: '2 Years' },
+    { value: '3y', label: '3 Years' },
+    { value: '5y', label: '5 Years' }
 ];
 
 const INTERVAL_OPTIONS = [
@@ -47,8 +49,8 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
     const [data, setData] = useState<HistoricalDataPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [period, setPeriod] = useState('6mo');
-    const [interval, setInterval] = useState('1d');
+    const [period, setPeriod] = useState('1y');
+    const [interval, setInterval] = useState('1wk');
 
     // Fetch historical data
     const fetchData = async () => {
@@ -56,7 +58,6 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
         setError(null);
 
         try {
-            console.log(`Fetching data for ${symbol}`);
             const response = await fetch(`/api/stocks/historical/${symbol}?period=${period}&interval=${interval}`);
 
             if (!response.ok) {
@@ -65,11 +66,9 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
             }
 
             const result = await response.json();
-            console.log('Data received:', result.data?.length || 0, 'points');
 
             setData(result.data || []);
         } catch (err) {
-            console.error('Error fetching historical data:', err);
             setError(err instanceof Error ? err.message : 'Failed to load chart data');
         } finally {
             setLoading(false);
@@ -79,8 +78,6 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
     // Initialize chart
     useEffect(() => {
         if (!chartContainerRef.current) return;
-
-        console.log('Initializing chart...');
 
         // Chart options following the example
         const chartOptions = {
@@ -111,8 +108,6 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
         chartRef.current = chart;
         seriesRef.current = series;
 
-        console.log('Chart initialized successfully');
-
         // Handle resize
         const handleResize = () => {
             if (chartContainerRef.current && chartRef.current) {
@@ -137,11 +132,8 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
     // Combined effect for chart initialization and data update
     useEffect(() => {
         if (!chartContainerRef.current || !data.length) {
-            console.log('Container or data not ready');
             return;
         }
-
-        console.log('Creating chart with', data.length, 'data points');
 
         // Chart options following the example
         const chartOptions = {
@@ -179,16 +171,10 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
                 close: item.close,
             }));
 
-            console.log('Setting data:', candlestickData.length, 'points');
-            console.log('Sample data:', candlestickData[0]);
-
             // Set data following the example pattern
             series.setData(candlestickData);
             chart.timeScale().fitContent();
-
-            console.log('Chart created and data set successfully');
         } catch (err) {
-            console.error('Error setting chart data:', err);
             setError('Failed to display chart data');
         }
 
@@ -223,23 +209,7 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
         }
     }, [symbol, period, interval]);
 
-    // Get latest price info
-    const getLatestPrice = () => {
-        if (!data.length) return null;
-        const latest = data[data.length - 1];
-        const previous = data[data.length - 2];
-        const change = previous ? latest.close - previous.close : 0;
-        const changePercent = previous ? (change / previous.close) * 100 : 0;
 
-        return {
-            price: latest.close,
-            change,
-            changePercent,
-            isPositive: change >= 0,
-        };
-    };
-
-    const latestPrice = getLatestPrice();
 
     if (loading) {
         return (
@@ -290,13 +260,7 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2">
-                            {symbol} - {companyName || 'Stock Chart'}
-                            {latestPrice && (
-                                <Badge variant={latestPrice.isPositive ? 'default' : 'destructive'}>
-                                    ₹{latestPrice.price.toFixed(2)}
-                                    ({latestPrice.isPositive ? '+' : ''}{latestPrice.changePercent.toFixed(2)}%)
-                                </Badge>
-                            )}
+                            {symbol} 
                         </CardTitle>
                     </div>
 
@@ -339,27 +303,6 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
                     ref={chartContainerRef}
                     className="w-full h-[400px]"
                 />
-
-                {data.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                        <div>
-                            <div className="font-medium">Data Points</div>
-                            <div>{data.length}</div>
-                        </div>
-                        <div>
-                            <div className="font-medium">Period</div>
-                            <div>{PERIOD_OPTIONS.find(p => p.value === period)?.label}</div>
-                        </div>
-                        <div>
-                            <div className="font-medium">Interval</div>
-                            <div>{INTERVAL_OPTIONS.find(i => i.value === interval)?.label}</div>
-                        </div>
-                        <div>
-                            <div className="font-medium">Date Range</div>
-                            <div>{data[0]?.date} to {data[data.length - 1]?.date}</div>
-                        </div>
-                    </div>
-                )}
             </CardContent>
         </Card>
     );
