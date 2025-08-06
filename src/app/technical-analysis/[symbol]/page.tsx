@@ -5,10 +5,10 @@ import { useSelector } from 'react-redux';
 import { AppLayout } from '@/components/navigation';
 import { TechnicalAnalysisDisplay } from '@/components/technical-analysis';
 import { selectCompanyBySymbol } from '@/lib/redux/slices/companiesSlice';
-import type { RootState } from '@/lib/redux/store';
+import type { RootState } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TechnicalAnalysisPage() {
@@ -55,12 +55,9 @@ export default function TechnicalAnalysisPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                <TrendingUp className="h-8 w-8" />
-                Technical Analysis
+                {symbol} - {'Stock Analysis'}
               </h1>
-              <p className="text-muted-foreground">
-                {symbol} - {companyData?.company || companyData?.companyName || 'Stock Analysis'}
-              </p>
+
             </div>
           </div>
         </div>
