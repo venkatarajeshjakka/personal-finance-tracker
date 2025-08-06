@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { createChart, CandlestickSeries } from 'lightweight-charts';
+import { createChart, CandlestickSeries, ColorType } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,8 +15,6 @@ interface HistoricalDataPoint {
     high: number;
     low: number;
     close: number;
-    volume: number;
-    adjClose: number;
 }
 
 const PERIOD_OPTIONS = [
@@ -37,11 +35,10 @@ const INTERVAL_OPTIONS = [
 
 interface CandlestickChartProps {
     symbol: string;
-    companyName?: string;
     className?: string;
 }
 
-export function CandlestickChart({ symbol, companyName, className }: CandlestickChartProps) {
+export function CandlestickChart({ symbol, className }: CandlestickChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const seriesRef = useRef<any>(null);
@@ -66,7 +63,6 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
             }
 
             const result = await response.json();
-
             setData(result.data || []);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load chart data');
@@ -75,15 +71,15 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
         }
     };
 
-    // Initialize chart
+    // Initialize chart once
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
-        // Chart options following the example
+        // Chart options
         const chartOptions = {
             layout: {
                 textColor: '#d1d5db',
-                background: { type: 'solid', color: 'transparent' },
+                background: { type: ColorType.Solid, color: 'transparent' },
             },
             grid: {
                 vertLines: { color: '#374151' },
@@ -91,12 +87,21 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
             },
             width: chartContainerRef.current.clientWidth,
             height: 400,
+            handleScroll: {
+                mouseWheel: true,
+                pressedMouseMove: true,
+            },
+            handleScale: {
+                axisPressedMouseMove: true,
+                mouseWheel: true,
+                pinch: true,
+            },
         };
 
-        // Create chart following the example pattern
+        // Create chart
         const chart = createChart(chartContainerRef.current, chartOptions);
 
-        // Add candlestick series following the example
+        // Add candlestick series
         const series = chart.addSeries(CandlestickSeries, {
             upColor: '#26a69a',
             downColor: '#ef5350',
@@ -129,77 +134,65 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
         };
     }, []);
 
-    // Combined effect for chart initialization and data update
+    // Update chart data when data changes
     useEffect(() => {
-        if (!chartContainerRef.current || !data.length) {
+        if (!chartRef.current || !seriesRef.current) {
             return;
         }
 
-        // Chart options following the example
-        const chartOptions = {
-            layout: {
-                textColor: '#d1d5db',
-                background: { type: 'solid', color: 'transparent' },
-            },
-            grid: {
-                vertLines: { color: '#374151' },
-                horzLines: { color: '#374151' },
-            },
-            width: chartContainerRef.current.clientWidth,
-            height: 400,
-        };
-
-        // Create chart following the example pattern
-        const chart = createChart(chartContainerRef.current, chartOptions);
-
-        // Add candlestick series following the example
-        const series = chart.addSeries(CandlestickSeries, {
-            upColor: '#26a69a',
-            downColor: '#ef5350',
-            borderVisible: false,
-            wickUpColor: '#26a69a',
-            wickDownColor: '#ef5350',
-        });
+        // Clear any previous error when new data arrives
+        if (data.length > 0) {
+            setError(null);
+        }
 
         try {
-            // Convert data to lightweight-charts format
-            const candlestickData = data.map(item => ({
-                time: item.date,
-                open: item.open,
-                high: item.high,
-                low: item.low,
-                close: item.close,
-            }));
+            if (data.length === 0) {
+                // Clear the chart if no data
+                seriesRef.current.setData([]);
+                return;
+            }
 
-            // Set data following the example pattern
-            series.setData(candlestickData);
-            chart.timeScale().fitContent();
+            // Convert data to lightweight-charts format with proper date handling
+            const candlestickData = data
+                .map(item => {
+                    // Parse the date string and convert to YYYY-MM-DD format
+                    let timeValue: string;
+
+                    try {
+                        // Handle different date formats
+                        const date = new Date(item.date);
+                        if (isNaN(date.getTime())) {
+                            return null;
+                        }
+
+                        // Convert to YYYY-MM-DD format required by lightweight-charts
+                        timeValue = date.toISOString().split('T')[0];
+                    } catch (dateError) {
+                        return null;
+                    }
+
+                    return {
+                        time: timeValue,
+                        open: Number(item.open),
+                        high: Number(item.high),
+                        low: Number(item.low),
+                        close: Number(item.close),
+                    };
+                })
+                .filter(item => item !== null) // Remove invalid entries
+                .sort((a, b) => a!.time.localeCompare(b!.time)); // Sort by date
+
+            if (candlestickData.length === 0) {
+                seriesRef.current.setData([]);
+                return;
+            }
+
+            // Update data without recreating the chart
+            seriesRef.current.setData(candlestickData);
+            chartRef.current.timeScale().fitContent();
         } catch (err) {
             setError('Failed to display chart data');
         }
-
-        // Store refs
-        chartRef.current = chart;
-        seriesRef.current = series;
-
-        // Handle resize
-        const handleResize = () => {
-            if (chartContainerRef.current && chart) {
-                chart.applyOptions({
-                    width: chartContainerRef.current.clientWidth,
-                });
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-
-        // Cleanup
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            chart.remove();
-            chartRef.current = null;
-            seriesRef.current = null;
-        };
     }, [data]);
 
     // Fetch data when symbol or parameters change
@@ -209,50 +202,9 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
         }
     }, [symbol, period, interval]);
 
-
-
-    if (loading) {
-        return (
-            <Card className={className}>
-                <CardHeader>
-                    <CardTitle>{symbol} - {companyName || 'Stock Chart'}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-center h-[400px]">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <RefreshCw className="h-5 w-5 animate-spin" />
-                            <span>Loading chart data...</span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (error) {
-        return (
-            <Card className={className}>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-destructive" />
-                        Chart Error
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription className="flex items-center justify-between">
-                            <span>{error}</span>
-                            <Button variant="outline" size="sm" onClick={fetchData}>
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Retry
-                            </Button>
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
-        );
-    }
+    // Show loading overlay instead of replacing entire component
+    const showLoadingOverlay = loading && data.length === 0;
+    const showErrorOverlay = error && data.length === 0;
 
     return (
         <Card className={className}>
@@ -260,7 +212,7 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
                 <div className="flex items-center justify-between flex-wrap gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2">
-                            {symbol} 
+                            {symbol}
                         </CardTitle>
                     </div>
 
@@ -299,10 +251,38 @@ export function CandlestickChart({ symbol, companyName, className }: Candlestick
             </CardHeader>
 
             <CardContent>
-                <div
-                    ref={chartContainerRef}
-                    className="w-full h-[400px]"
-                />
+                <div className="relative w-full h-[400px]">
+                    <div
+                        ref={chartContainerRef}
+                        className="w-full h-full"
+                    />
+
+                    {/* Loading Overlay */}
+                    {showLoadingOverlay && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <RefreshCw className="h-5 w-5 animate-spin" />
+                                <span>Loading chart data...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error Overlay */}
+                    {showErrorOverlay && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20">
+                            <Alert variant="destructive" className="max-w-md">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription className="flex items-center justify-between">
+                                    <span>{error}</span>
+                                    <Button variant="outline" size="sm" onClick={fetchData} className="ml-2">
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Retry
+                                    </Button>
+                                </AlertDescription>
+                            </Alert>
+                        </div>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
