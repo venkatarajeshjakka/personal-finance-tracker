@@ -12,6 +12,7 @@ import {
   uiReducer,
   settingsReducer
 } from './slices';
+import aiAnalysisReducer from './slices/aiAnalysisSlice';
 
 // Import API
 import { financeApi } from './api/financeApi';
@@ -33,6 +34,7 @@ export const store = configureStore({
     filters: filtersReducer,
     ui: uiReducer,
     settings: settingsReducer,
+    aiAnalysis: aiAnalysisReducer,
     [financeApi.reducerPath]: financeApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

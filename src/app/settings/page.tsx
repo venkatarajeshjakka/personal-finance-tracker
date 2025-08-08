@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NSECompanyManager } from '@/components/settings/NSECompanyManager';
 import { MarketCapSettings } from '@/components/settings/MarketCapSettings';
 import PriceUpdateSettings from '@/components/settings/PriceUpdateSettings';
+import { GeminiAISettings } from '@/components/settings/GeminiAISettings';
 
 import { AppLayout } from '@/components/navigation';
 
@@ -68,28 +69,26 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="api-settings" className="space-y-6">
+            <GeminiAISettings />
+            
             <Card>
               <CardHeader>
-                <CardTitle>API Settings</CardTitle>
+                <CardTitle>Chart Data API</CardTitle>
                 <CardDescription>
-                  External API configurations and integrations
+                  Technical analysis chart data configuration
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="rounded-lg border p-4">
-                    <h3 className="font-medium mb-2">Technical Analysis</h3>
+                    <h3 className="font-medium mb-2">Yahoo Finance Integration</h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Technical analysis charts are now powered by Yahoo Finance data and work without any API key configuration.
+                      Technical analysis charts are powered by Yahoo Finance data and work without any API key configuration.
                     </p>
                     <div className="flex items-center gap-2 text-sm text-green-600">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       <span>Active - No configuration required</span>
                     </div>
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground">
-                    Future API integrations will be configured here.
                   </div>
                 </div>
               </CardContent>

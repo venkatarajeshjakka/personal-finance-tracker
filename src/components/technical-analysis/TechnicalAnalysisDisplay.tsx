@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef } from 'react';
 import { CandlestickChart } from './CandlestickChart';
 import { TechnicalAnalysisCompanyDetails } from './TechnicalAnalysisCompanyDetails';
+import { AIAnalysisDisplay } from './AIAnalysisDisplay';
 import type { CompanyFinancials } from '@/types';
 
 
@@ -14,6 +16,7 @@ export function TechnicalAnalysisDisplay({
   symbol,
   companyData,
 }: TechnicalAnalysisDisplayProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="space-y-6">
@@ -24,12 +27,24 @@ export function TechnicalAnalysisDisplay({
       />
 
       {/* Main Candlestick Chart */}
-      <CandlestickChart
+      <div ref={chartRef}>
+        <CandlestickChart
+          symbol={symbol}
+        />
+      </div>
+
+      {/* AI Analysis Section */}
+      <AIAnalysisDisplay
         symbol={symbol}
-        companyName={companyData?.company}
+        chartElementRef={chartRef}
+        timeframe="1y"
+        additionalContext={{
+          currentPrice: companyData ? parseFloat(companyData.price) : undefined,
+          marketCap: companyData ? parseFloat(companyData.market_cap) : undefined,
+          sector: companyData?.sector,
+          industry: companyData?.industry
+        }}
       />
-
-
     </div>
   );
 }

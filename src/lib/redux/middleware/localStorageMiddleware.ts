@@ -13,6 +13,7 @@ import {
   loadWatchlists,
   loadNSECompanies
 } from '../slices';
+import { loadAIConfig, loadAnalysisHistory } from '../slices/aiAnalysisSlice';
 
 // Actions that should trigger localStorage sync
 const SYNC_ACTIONS = [
@@ -127,6 +128,10 @@ export const initializeFromLocalStorage = (store: any) => {
     store.dispatch(loadPortfolios());
     store.dispatch(loadWatchlists());
     store.dispatch(loadNSECompanies());
+
+    // Load AI analysis configuration and history
+    store.dispatch(loadAIConfig());
+    store.dispatch(loadAnalysisHistory());
 
   } catch (error) {
     console.error('Failed to load initial state from localStorage:', error);

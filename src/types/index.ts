@@ -152,6 +152,7 @@ export interface RootState {
   filters: FiltersState;
   ui: UIState;
   settings: SettingsState;
+  aiAnalysis: import('@/types/gemini').AIAnalysisState;
 }
 
 export interface CompaniesState {
