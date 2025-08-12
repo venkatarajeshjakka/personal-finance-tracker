@@ -51,6 +51,34 @@ export interface Holding {
   currentPrice: number;
   totalValue: number;
   unrealizedGain: number;
+  // Daily change information
+  priceChange?: number; // Daily price change in currency
+  priceChangePercent?: number; // Daily price change in percentage
+  dayGainLoss?: number; // Daily gain/loss for this holding (quantity × priceChange)
+  // Financial metrics from Yahoo Finance API
+  marketCap?: number | null;
+  sector?: string;
+  industry?: string;
+  trailingPE?: number | null;
+  forwardPE?: number | null;
+  priceToBook?: number | null;
+  // Additional Yahoo Finance metrics
+  lastTradePrice?: number;
+  dayHigh?: number;
+  dayLow?: number;
+  volume?: number;
+  averageVolume?: number;
+  fiftyTwoWeekHigh?: number | null;
+  fiftyTwoWeekLow?: number | null;
+  beta?: number | null;
+  dividendYield?: number | null;
+  earningsPerShare?: number | null;
+  priceToSales?: number | null;
+  // Company profile information
+  companyName?: string;
+  website?: string;
+  businessSummary?: string;
+  fullTimeEmployees?: number | null;
 }
 
 export interface Transaction {
@@ -345,4 +373,32 @@ export interface CSVValidationResult {
 
 // Redux types
 export type { AppDispatch } from '@/lib/redux/store';
+
+// Portfolio calculation utilities
+export const calculateNetInvested = (transactions: Transaction[]): number => {
+  let totalInvested = 0;
+  let totalReceived = 0;
+
+  transactions.forEach(tx => {
+    if (tx.type === 'buy') {
+      totalInvested += tx.totalAmount; // Includes fees for buy transactions
+    } else if (tx.type === 'sell') {
+      totalReceived += tx.totalAmount; // Excludes fees for sell transactions
+    }
+  });
+
+  return totalInvested - totalReceived;
+};
+
+export const calculatePortfolioReturnPercentage = (portfolio: Portfolio): number => {
+  const netInvested = calculateNetInvested(portfolio.transactions);
+  if (netInvested === 0) return 0;
+  return ((portfolio.currentValue - netInvested) / netInvested) * 100;
+};
+
+export const calculatePortfolioDayPL = (portfolio: Portfolio): number => {
+  return portfolio.holdings.reduce((sum, holding) => {
+    return sum + (holding.dayGainLoss || 0);
+  }, 0);
+};
 

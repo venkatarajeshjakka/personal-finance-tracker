@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/navigation";
+import { PortfolioManager } from "@/components/portfolio";
 
 export default function PortfolioPage() {
   return (
@@ -11,11 +12,7 @@ export default function PortfolioPage() {
           </p>
         </div>
         
-        <div className="rounded-lg border bg-card p-6">
-          <p className="text-muted-foreground">
-            Portfolio management functionality will be implemented in future tasks.
-          </p>
-        </div>
+        <PortfolioManager />
       </div>
     </AppLayout>
   );
