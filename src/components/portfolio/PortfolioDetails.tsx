@@ -280,33 +280,33 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <Button variant="ghost" size="sm" onClick={onBack}>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                    <Button variant="ghost" size="sm" onClick={onBack} className="flex-shrink-0">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Portfolios
                     </Button>
-                    <div>
-                        <h1 className="text-3xl font-bold">{portfolio.name}</h1>
-                        {portfolio.description && (
-                            <p className="text-muted-foreground mt-1">{portfolio.description}</p>
-                        )}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRefreshPrices(true)}
+                            disabled={refreshingPrices || !portfolio || portfolio.holdings.length === 0}
+                        >
+                            <RefreshCw className={`h-4 w-4 mr-2 ${refreshingPrices ? 'animate-spin' : ''}`} />
+                            Refresh Prices
+                        </Button>
+                        <Button onClick={() => setShowAddTransaction(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Transaction
+                        </Button>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRefreshPrices(true)}
-                        disabled={refreshingPrices || !portfolio || portfolio.holdings.length === 0}
-                    >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshingPrices ? 'animate-spin' : ''}`} />
-                        Refresh Prices
-                    </Button>
-                    <Button onClick={() => setShowAddTransaction(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Transaction
-                    </Button>
+                <div>
+                    <h1 className="text-3xl font-bold">{portfolio.name}</h1>
+                    {portfolio.description && (
+                        <p className="text-muted-foreground mt-1">{portfolio.description}</p>
+                    )}
                 </div>
             </div>
 

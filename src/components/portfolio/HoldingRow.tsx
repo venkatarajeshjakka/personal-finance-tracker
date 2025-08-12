@@ -93,7 +93,7 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
             <div
                 className={`
                     grid gap-0 border-b
-                    grid-cols-[40px_2fr_60px_70px_70px_80px_80px_90px_80px_80px_40px] lg:grid-cols-[48px_2fr_70px_85px_85px_100px_100px_110px_100px_100px_48px] xl:grid-cols-[60px_2fr_90px_110px_110px_130px_130px_140px_130px_130px_60px]
+                    grid-cols-[40px_3fr_55px_65px_65px_75px_75px_85px_75px_75px_40px] lg:grid-cols-[48px_3fr_65px_80px_80px_95px_95px_105px_95px_95px_48px] xl:grid-cols-[60px_3fr_85px_105px_105px_125px_125px_135px_125px_125px_60px]
                     ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
                     hover:bg-muted/40 transition-colors
                     ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
@@ -108,14 +108,14 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
                 </div>
 
                 {/* Instrument */}
-                <div className="p-3 font-medium text-foreground overflow-hidden">
-                    <div className="flex flex-col">
+                <div className="p-3 font-medium text-foreground">
+                    <div className="flex flex-col space-y-1">
                         <div className="flex items-center gap-2">
                             <span className="font-semibold">{holding.symbol}</span>
                             {holding.marketCap && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                        <Info className="h-3 w-3 text-muted-foreground cursor-help flex-shrink-0" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <div className="space-y-1 text-xs">
@@ -128,13 +128,17 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
                                 </Tooltip>
                             )}
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
+                        <div className="flex flex-wrap items-center gap-1">
                             {holding.sector && (
-                                <Badge variant="outline" className="text-xs">
-                                    {holding.industry}
+                                <Badge variant="outline" className="text-xs whitespace-nowrap">
+                                    {holding.sector}
                                 </Badge>
                             )}
-                           
+                            {holding.industry && (
+                                <span className="text-xs text-muted-foreground">
+                                    {holding.industry}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
