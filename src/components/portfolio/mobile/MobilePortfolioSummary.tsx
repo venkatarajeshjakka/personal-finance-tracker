@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
-import { Portfolio, calculateNetInvested, calculatePortfolioDayPL } from '@/types';
+import { Portfolio, calculateNetInvested, calculatePortfolioDayPL, calculatePortfolioDayPLPercent } from '@/types';
 
 interface MobilePortfolioSummaryProps {
     portfolio: Portfolio;
@@ -46,7 +46,7 @@ export function MobilePortfolioSummary({
 
     const netInvested = calculateNetInvested(portfolio.transactions);
     const dayPL = calculatePortfolioDayPL(portfolio);
-    const dayPLPercent = netInvested > 0 ? (dayPL / netInvested) * 100 : 0;
+    const dayPLPercent = calculatePortfolioDayPLPercent(portfolio);
     const totalPLPercent = netInvested > 0 ? (portfolio.totalReturn / netInvested) * 100 : 0;
 
     const isDayPositive = dayPL >= 0;

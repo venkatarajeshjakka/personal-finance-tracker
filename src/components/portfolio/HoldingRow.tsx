@@ -93,7 +93,7 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
             <div
                 className={`
                     grid gap-0 border-b
-                    grid-cols-[40px_3fr_55px_65px_65px_75px_75px_85px_75px_75px_40px] lg:grid-cols-[48px_3fr_65px_80px_80px_95px_95px_105px_95px_95px_48px] xl:grid-cols-[60px_3fr_85px_105px_105px_125px_125px_135px_125px_125px_60px]
+                    grid-cols-[40px_3fr_55px_65px_65px_75px_75px_85px_85px_75px_40px] lg:grid-cols-[48px_3fr_65px_80px_80px_95px_95px_105px_105px_95px_48px] xl:grid-cols-[60px_3fr_85px_105px_105px_125px_125px_135px_135px_125px_60px]
                     ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
                     hover:bg-muted/40 transition-colors
                     ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
@@ -194,16 +194,15 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
                     </div>
                 </div>
 
-                {/* Net Change */}
+                {/* Daily Gain */}
                 <div className="p-3 text-right flex items-center justify-end">
-                    <div className="flex flex-col items-end">
-                        <span className={`font-medium ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
-                            {isNetPositive ? '+' : ''}{formatPrice(netChange)}
+                    {holding.dayGainLoss !== undefined ? (
+                        <span className={`font-semibold ${(holding.dayGainLoss || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {(holding.dayGainLoss || 0) >= 0 ? '+' : ''}{formatCurrency(holding.dayGainLoss || 0)}
                         </span>
-                        <span className={`text-xs ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
-                            ({formatPercentage(netChangePercent)})
-                        </span>
-                    </div>
+                    ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                    )}
                 </div>
 
                 {/* Day Change */}

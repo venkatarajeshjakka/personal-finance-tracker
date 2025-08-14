@@ -107,6 +107,7 @@ export const updatePortfolioHoldingPrices = createAsyncThunk(
       currentPrice: number;
       priceChange: number;
       priceChangePercent: number;
+      previousClose?: number;
       marketCap?: number | null;
       sector?: string;
       industry?: string;
@@ -135,6 +136,7 @@ export const updatePortfolioHoldingPrices = createAsyncThunk(
           priceChange: update.priceChange,
           priceChangePercent: update.priceChangePercent,
           dayGainLoss: dayGainLoss,
+          previousClose: update.previousClose,
           // Update financial metrics from Yahoo Finance API
           marketCap: update.marketCap !== undefined ? update.marketCap : holding.marketCap,
           sector: update.sector || holding.sector,

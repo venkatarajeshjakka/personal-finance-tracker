@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
-import { Portfolio, calculateNetInvested, calculatePortfolioDayPL } from '@/types';
+import { Portfolio, calculateNetInvested, calculatePortfolioDayPL, calculatePortfolioDayPLPercent } from '@/types';
 import { MobilePortfolioSummary } from './mobile/MobilePortfolioSummary';
 
 interface PortfolioSummaryProps {
@@ -16,13 +16,13 @@ interface PortfolioSummaryProps {
   showDetailedMetrics?: boolean;
 }
 
-export function PortfolioSummary({ 
-  portfolio, 
-  loading = false, 
-  onRefresh, 
-  refreshing = false, 
+export function PortfolioSummary({
+  portfolio,
+  loading = false,
+  onRefresh,
+  refreshing = false,
   lastUpdated,
-  showDetailedMetrics = true 
+  showDetailedMetrics = true
 }: PortfolioSummaryProps) {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -31,7 +31,7 @@ export function PortfolioSummary({
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -46,10 +46,8 @@ export function PortfolioSummary({
   };
 
   const formatPercentage = (value: number) => {
-    // If the value is already in percentage format (> 1 or < -1), use it directly
-    // If it's in decimal format (between -1 and 1), multiply by 100
-    const percentValue = Math.abs(value) > 1 ? value : value * 100;
-    return `${percentValue >= 0 ? '+' : ''}${percentValue.toFixed(2)}%`;
+    // Value is already in percentage format from our calculations
+    return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
 
   const formatTime = (date: Date) => {
@@ -62,16 +60,16 @@ export function PortfolioSummary({
 
   const netInvested = calculateNetInvested(portfolio.transactions);
   const dayPL = calculatePortfolioDayPL(portfolio);
-  const dayPLPercent = netInvested > 0 ? (dayPL / netInvested) * 100 : 0;
+  const dayPLPercent = calculatePortfolioDayPLPercent(portfolio);
   const totalPLPercent = netInvested > 0 ? (portfolio.totalReturn / netInvested) * 100 : 0;
-  
+
   const isDayPositive = dayPL >= 0;
   const isTotalPositive = portfolio.totalReturn >= 0;
 
   // Show mobile view on small screens
   if (isMobile) {
     return (
-      <MobilePortfolioSummary 
+      <MobilePortfolioSummary
         portfolio={portfolio}
         loading={loading}
         onRefresh={onRefresh}

@@ -29,7 +29,7 @@ import { Holding } from '@/types';
 import { MobileHoldingsView } from './mobile/MobileHoldingsView';
 import { HoldingRow } from './HoldingRow';
 
-type SortColumn = 'symbol' | 'quantity' | 'averagePrice' | 'currentPrice' | 'invested' | 'currentValue' | 'unrealizedGain' | 'netChange' | 'dayChange';
+type SortColumn = 'symbol' | 'quantity' | 'averagePrice' | 'currentPrice' | 'invested' | 'currentValue' | 'unrealizedGain' | 'dailyGain' | 'dayChange';
 type SortDirection = 'asc' | 'desc';
 
 interface HoldingsTableProps {
@@ -111,9 +111,9 @@ export function HoldingsTable({ holdings, onRefresh, refreshing = false }: Holdi
           aValue = a.unrealizedGain;
           bValue = b.unrealizedGain;
           break;
-        case 'netChange':
-          aValue = calculateNetChange(a);
-          bValue = calculateNetChange(b);
+        case 'dailyGain':
+          aValue = a.dayGainLoss || 0;
+          bValue = b.dayGainLoss || 0;
           break;
         case 'dayChange':
           aValue = a.priceChange || 0;
@@ -313,7 +313,7 @@ export function HoldingsTable({ holdings, onRefresh, refreshing = false }: Holdi
           <div className="min-w-[1200px]">
             {/* Header */}
             <div className="grid gap-0 bg-muted/50 border-b
-              grid-cols-[40px_3fr_55px_65px_65px_75px_75px_85px_75px_75px_40px] lg:grid-cols-[48px_3fr_65px_80px_80px_95px_95px_105px_95px_95px_48px] xl:grid-cols-[60px_3fr_85px_105px_105px_125px_125px_135px_125px_125px_60px]">
+              grid-cols-[40px_3fr_55px_65px_65px_75px_75px_85px_85px_75px_40px] lg:grid-cols-[48px_3fr_65px_80px_80px_95px_95px_105px_105px_95px_48px] xl:grid-cols-[60px_3fr_85px_105px_105px_125px_125px_135px_135px_125px_60px]">
               <div className="p-3 flex items-center justify-center">
                 <Checkbox
                   checked={allSelected}
@@ -379,10 +379,10 @@ export function HoldingsTable({ holdings, onRefresh, refreshing = false }: Holdi
               </div>
               <div
                 className="p-3 font-semibold text-foreground cursor-pointer hover:bg-muted/50 flex items-center justify-end gap-1"
-                onClick={() => handleSort('netChange')}
+                onClick={() => handleSort('dailyGain')}
               >
-                Net chg.
-                {getSortIcon('netChange')}
+                Daily Gain
+                {getSortIcon('dailyGain')}
               </div>
               <div
                 className="p-3 font-semibold text-foreground cursor-pointer hover:bg-muted/50 flex items-center justify-end gap-1"

@@ -18,6 +18,7 @@ import { TransactionHistory } from '@/components/portfolio/TransactionHistory';
 import { PortfolioAllocation } from '@/components/portfolio/PortfolioAllocation';
 import { HoldingsTable } from './HoldingsTable';
 import { PortfolioSummary } from './PortfolioSummary';
+import { PortfolioAnalytics } from '@/components/portfolio/analytics';
 import { toast } from 'sonner';
 
 interface PortfolioDetailsProps {
@@ -324,6 +325,7 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
                     <TabsTrigger value="holdings">Holdings</TabsTrigger>
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="allocation">Allocation</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="holdings" className="space-y-4">
@@ -340,6 +342,10 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
 
                 <TabsContent value="allocation" className="space-y-4">
                     <PortfolioAllocation portfolio={portfolio} />
+                </TabsContent>
+
+                <TabsContent value="analytics" className="space-y-4">
+                    <PortfolioAnalytics portfolio={portfolio} />
                 </TabsContent>
             </Tabs>
 

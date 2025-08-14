@@ -55,6 +55,7 @@ export interface Holding {
   priceChange?: number; // Daily price change in currency
   priceChangePercent?: number; // Daily price change in percentage
   dayGainLoss?: number; // Daily gain/loss for this holding (quantity × priceChange)
+  previousClose?: number; // Previous day's closing price from Yahoo Finance
   // Financial metrics from Yahoo Finance API
   marketCap?: number | null;
   sector?: string;
@@ -401,4 +402,31 @@ export const calculatePortfolioDayPL = (portfolio: Portfolio): number => {
     return sum + (holding.dayGainLoss || 0);
   }, 0);
 };
+
+export const calculatePortfolioDayPLPercent = (portfolio: Portfolio): number => {
+  // Calculate previous day's portfolio value by using previous day's closing prices
+  let previousDayValue = 0;
+  let currentDayValue = 0;
+
+  portfolio.holdings.forEach(holding => {
+    // Current day value for this holding
+    const currentHoldingValue = holding.quantity * holding.currentPrice;
+    currentDayValue += currentHoldingValue;
+
+    // Previous day's closing price = current price - daily price change
+    const previousDayPrice = holding.currentPrice - (holding.priceChange || 0);
+    const previousHoldingValue = holding.quantity * previousDayPrice;
+    previousDayValue += previousHoldingValue;
+  });
+
+  // Calculate day P&L percentage based on previous day's value
+  if (previousDayValue === 0) return 0;
+
+  const dayPL = currentDayValue - previousDayValue;
+  const dayPLPercent = (dayPL / previousDayValue) * 100; 
+
+  return dayPLPercent;
+};
+
+
 
