@@ -124,6 +124,11 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
                             trailingPE: priceResult.trailingPE,
                             forwardPE: priceResult.forwardPE,
                             priceToBook: priceResult.priceToBook,
+                            beta: priceResult.beta,
+                            fiftyTwoWeekHigh: priceResult.fiftyTwoWeekHigh,
+                            fiftyTwoWeekLow: priceResult.fiftyTwoWeekLow,
+                            dividendYield: priceResult.trailingAnnualDividendYield,
+                            earningsPerShare: priceResult.epsTrailingTwelveMonths,
                         };
                     }
 
@@ -203,6 +208,12 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
                                 trailingPE: priceResult.trailingPE,
                                 forwardPE: priceResult.forwardPE,
                                 priceToBook: priceResult.priceToBook,
+                                beta: priceResult.beta,
+                                fiftyTwoWeekHigh: priceResult.fiftyTwoWeekHigh,
+                                fiftyTwoWeekLow: priceResult.fiftyTwoWeekLow,
+                                dividendYield: priceResult.trailingAnnualDividendYield,
+                                earningsPerShare: priceResult.epsTrailingTwelveMonths,
+
                             };
                         }
 
@@ -312,7 +323,7 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
             </div>
 
             {/* Portfolio Summary */}
-            <PortfolioSummary 
+            <PortfolioSummary
                 portfolio={portfolio}
                 onRefresh={() => handleRefreshPrices(true)}
                 refreshing={refreshingPrices}
@@ -329,8 +340,8 @@ export function PortfolioDetails({ portfolioId, onBack }: PortfolioDetailsProps)
                 </TabsList>
 
                 <TabsContent value="holdings" className="space-y-4">
-                    <HoldingsTable 
-                        holdings={portfolio.holdings} 
+                    <HoldingsTable
+                        holdings={portfolio.holdings}
                         onRefresh={() => handleRefreshPrices(true)}
                         refreshing={refreshingPrices}
                     />

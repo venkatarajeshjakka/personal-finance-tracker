@@ -114,6 +114,11 @@ export const updatePortfolioHoldingPrices = createAsyncThunk(
       trailingPE?: number | null;
       forwardPE?: number | null;
       priceToBook?: number | null;
+      beta?: number | null;
+      fiftyTwoWeekHigh?: number | null;
+      fiftyTwoWeekLow?: number | null;
+      dividendYield?: number | null;
+      earningsPerShare?: number | null;
     }>
   }) => {
     const portfolio = StorageService.getPortfolio(portfolioId);
@@ -144,6 +149,11 @@ export const updatePortfolioHoldingPrices = createAsyncThunk(
           trailingPE: update.trailingPE !== undefined ? update.trailingPE : holding.trailingPE,
           forwardPE: update.forwardPE !== undefined ? update.forwardPE : holding.forwardPE,
           priceToBook: update.priceToBook !== undefined ? update.priceToBook : holding.priceToBook,
+          beta: update.beta !== undefined ? update.beta : holding.beta,
+          fiftyTwoWeekHigh: update.fiftyTwoWeekHigh !== undefined ? update.fiftyTwoWeekHigh : holding.fiftyTwoWeekHigh,
+          fiftyTwoWeekLow: update.fiftyTwoWeekLow !== undefined ? update.fiftyTwoWeekLow : holding.fiftyTwoWeekLow,
+          dividendYield: update.dividendYield !== undefined ? update.dividendYield : holding.dividendYield,
+          earningsPerShare: update.earningsPerShare !== undefined ? update.earningsPerShare : holding.earningsPerShare,
         };
       }
       return holding;

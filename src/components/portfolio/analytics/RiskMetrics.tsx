@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Shield, TrendingUp, BarChart3, PieChart } from 'lucide-react';
 import { calculateNetInvested } from '@/types';
+import { RiskCalculationService } from '@/lib/utils/riskCalculations';
 
 interface RiskMetricsProps {
   portfolio: Portfolio;
@@ -32,10 +33,33 @@ interface RiskAnalysis {
 }
 
 export function RiskMetrics({ portfolio }: RiskMetricsProps) {
+  const [portfolioVolatility, setPortfolioVolatility] = React.useState<number>(0);
+  const [isCalculatingVolatility, setIsCalculatingVolatility] = React.useState<boolean>(true);
+
+  // Calculate volatility asynchronously
+  React.useEffect(() => {
+    const calculateVolatility = async () => {
+      setIsCalculatingVolatility(true);
+      try {
+        const volatility = await RiskCalculationService.calculatePortfolioVolatility(portfolio);
+        setPortfolioVolatility(volatility);
+      } catch (error) {
+        console.error('Error calculating volatility:', error);
+        // Fallback to simple calculation
+        const fallbackVolatility = RiskCalculationService.calculateSimplePortfolioVolatility(portfolio);
+        setPortfolioVolatility(fallbackVolatility);
+      } finally {
+        setIsCalculatingVolatility(false);
+      }
+    };
+
+    calculateVolatility();
+  }, [portfolio]);
+
   const riskAnalysis = useMemo((): RiskAnalysis => {
     const totalValue = portfolio.currentValue;
     const netInvested = calculateNetInvested(portfolio.transactions);
-    
+
     // Calculate concentration risk
     const holdingPercentages = portfolio.holdings.map(holding => ({
       symbol: holding.symbol,
@@ -45,7 +69,7 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
     }));
 
     const concentrationRisk = Math.max(...holdingPercentages.map(h => h.percentage));
-    const largestHolding = holdingPercentages.reduce((largest, current) => 
+    const largestHolding = holdingPercentages.reduce((largest, current) =>
       current.percentage > largest.percentage ? current : largest
     );
 
@@ -60,7 +84,7 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
     const numberOfHoldings = portfolio.holdings.length;
     const numberOfSectors = Object.keys(sectorConcentration).length;
     const maxSectorConcentration = Math.max(...Object.values(sectorConcentration));
-    
+
     let diversificationScore = 0;
     // Holdings diversity (0-40 points)
     diversificationScore += Math.min(numberOfHoldings * 2, 40);
@@ -69,36 +93,19 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
     // Concentration penalty (0-30 points)
     diversificationScore += Math.max(0, 30 - (maxSectorConcentration - 20));
 
-    // Calculate portfolio volatility (simplified)
-    const returns = portfolio.holdings.map(holding => {
-      const returnPercent = holding.averagePrice > 0 ? 
-        ((holding.currentPrice - holding.averagePrice) / holding.averagePrice) * 100 : 0;
-      return returnPercent;
-    });
-    
-    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
-    const portfolioVolatility = Math.sqrt(variance);
+    // Use the calculated portfolio volatility from state
 
-    // Calculate Value at Risk (5% VaR) - simplified
-    const portfolioReturn = netInvested > 0 ? ((totalValue - netInvested) / netInvested) * 100 : 0;
-    const valueAtRisk = Math.abs(portfolioReturn - (1.645 * portfolioVolatility)); // 5% VaR
+    // Calculate Value at Risk (5% VaR)
+    const valueAtRisk = RiskCalculationService.calculateValueAtRisk(portfolio, 0.05);
 
-    // Calculate max drawdown (simplified)
-    const maxDrawdown = Math.max(0, ...portfolio.holdings.map(holding => {
-      const returnPercent = holding.averagePrice > 0 ? 
-        ((holding.currentPrice - holding.averagePrice) / holding.averagePrice) * 100 : 0;
-      return Math.abs(Math.min(0, returnPercent));
-    }));
+    // Calculate max drawdown
+    const maxDrawdown = RiskCalculationService.calculateMaxDrawdown(portfolio);
 
-    // Calculate Sharpe ratio (simplified, assuming risk-free rate of 6%)
-    const riskFreeRate = 6;
-    const excessReturn = portfolioReturn - riskFreeRate;
-    const sharpeRatio = portfolioVolatility > 0 ? excessReturn / portfolioVolatility : 0;
+    // Calculate Sharpe ratio with proper annualized returns
+    const sharpeRatio = RiskCalculationService.calculateSharpeRatio(portfolio, portfolioVolatility);
 
-    // Calculate beta (simplified, assuming market return of 12%)
-    const marketReturn = 12;
-    const beta = portfolioVolatility > 0 ? (portfolioReturn / marketReturn) : 1;
+    // Calculate beta using actual Yahoo Finance beta values
+    const beta = RiskCalculationService.calculatePortfolioBeta(portfolio, portfolioVolatility);
 
     // Determine risk level
     let riskLevel: 'Low' | 'Medium' | 'High' | 'Very High' = 'Low';
@@ -155,7 +162,7 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
       sharpeRatio,
       beta
     };
-  }, [portfolio]);
+  }, [portfolio, portfolioVolatility]);
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -212,14 +219,22 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Volatility</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              {isCalculatingVolatility && (
+                <div className="animate-spin h-3 w-3 border border-muted-foreground border-t-transparent rounded-full" />
+              )}
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {riskAnalysis.portfolioVolatility.toFixed(1)}%
+              {isCalculatingVolatility ? '...' : `${riskAnalysis.portfolioVolatility.toFixed(1)}%`}
             </div>
             <p className="text-xs text-muted-foreground">
-              Portfolio volatility
+              {isCalculatingVolatility ? 'Calculating from Yahoo Finance...' :
+                riskAnalysis.portfolioVolatility < 10 ? 'Low volatility (from historical data)' :
+                  riskAnalysis.portfolioVolatility < 20 ? 'Moderate volatility (from historical data)' :
+                    riskAnalysis.portfolioVolatility < 30 ? 'High volatility (from historical data)' : 'Very high volatility (from historical data)'}
             </p>
           </CardContent>
         </Card>
@@ -230,11 +245,16 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className={`text-2xl font-bold ${riskAnalysis.sharpeRatio > 1 ? 'text-green-600' :
+              riskAnalysis.sharpeRatio > 0.5 ? 'text-yellow-600' :
+                riskAnalysis.sharpeRatio > 0 ? 'text-orange-600' : 'text-red-600'
+              }`}>
               {riskAnalysis.sharpeRatio.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Risk-adjusted return
+              {riskAnalysis.sharpeRatio > 1 ? 'Excellent risk-adjusted return' :
+                riskAnalysis.sharpeRatio > 0.5 ? 'Good risk-adjusted return' :
+                  riskAnalysis.sharpeRatio > 0 ? 'Fair risk-adjusted return' : 'Poor risk-adjusted return'}
             </p>
           </CardContent>
         </Card>
@@ -271,15 +291,15 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Sector Concentration</h4>
               {Object.entries(riskAnalysis.sectorConcentration)
-                .sort(([,a], [,b]) => b - a)
+                .sort(([, a], [, b]) => b - a)
                 .slice(0, 5)
                 .map(([sector, percentage]) => (
                   <div key={sector} className="flex justify-between items-center">
                     <span className="text-sm truncate max-w-32">{sector}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-20 bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
+                        <div
+                          className="bg-primary h-2 rounded-full"
                           style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
                       </div>
@@ -315,9 +335,19 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
                 </div>
               </div>
               <div>
-                <div className="text-sm font-medium">Portfolio Beta</div>
+                <div className="flex items-center gap-1">
+                  <div className="text-sm font-medium">Portfolio Beta</div>
+                  {RiskCalculationService.getBetaDataQuality(portfolio).quality === 'high' && (
+                    <Badge variant="outline" className="text-xs px-1 py-0">
+                      Live
+                    </Badge>
+                  )}
+                </div>
                 <div className="text-lg font-bold">
                   {riskAnalysis.beta.toFixed(2)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {RiskCalculationService.getBetaDataQuality(portfolio).description}
                 </div>
               </div>
               <div>
@@ -331,9 +361,11 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
             <div className="pt-4 border-t">
               <h4 className="text-sm font-medium mb-2">Risk Interpretation</h4>
               <div className="space-y-1 text-xs text-muted-foreground">
-                <p><strong>VaR:</strong> Potential loss in worst 5% of scenarios</p>
-                <p><strong>Beta:</strong> Sensitivity to market movements (1.0 = market average)</p>
-                <p><strong>Sharpe:</strong> Return per unit of risk (higher is better)</p>
+                <p><strong>Volatility:</strong> Measures price fluctuation; lower is more stable</p>
+                <p><strong>Sharpe Ratio:</strong> Risk-adjusted return; &gt;1.0 is excellent, &gt;0.5 is good</p>
+                <p><strong>VaR (5%):</strong> Potential loss in worst 5% of scenarios</p>
+                <p><strong>Beta:</strong> Market sensitivity; 1.0 = market average, &gt;1.0 = more volatile</p>
+                <p><strong>Max Drawdown:</strong> Largest peak-to-trough decline</p>
               </div>
             </div>
           </CardContent>

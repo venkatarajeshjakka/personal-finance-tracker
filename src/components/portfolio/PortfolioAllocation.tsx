@@ -311,16 +311,11 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
           <CardHeader>
             <CardTitle className="flex items-center">
               <PieChart className="mr-2 h-5 w-5" />
-              Holdings Breakdown
+              Detailed Holdings
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <PieChart className="mr-2 h-5 w-5" />
-                Holdings Allocation
-              </CardTitle>
-            </CardHeader>
+
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {holdingAllocations.map((holding, index) => (
                 <div key={holding.symbol} className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
