@@ -1,11 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { memo } from 'react';
 import { Portfolio, Transaction } from '@/types';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { calculateNetInvested } from '@/types';
+import { formatters, ColorFormatter } from '@/lib/utils/formatters';
+import { usePortfolioPerformance } from '@/lib/hooks/usePortfolioCalculations';
+import { ChartLoadingState } from '@/components/ui/loading-states';
+import { EmptyState } from '@/components/ui/error-states';
 
 interface PerformanceChartProps {
   portfolio: Portfolio;
@@ -21,111 +26,26 @@ interface PerformanceDataPoint {
   returnPercent: number;
 }
 
-export function PerformanceChart({ portfolio, timeframe, onTimeframeChange }: PerformanceChartProps) {
-  // Generate performance data based on transactions
-  const performanceData = useMemo(() => {
-    const data: PerformanceDataPoint[] = [];
-    const sortedTransactions = [...portfolio.transactions].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+const PerformanceChartComponent = ({ portfolio, timeframe, onTimeframeChange }: PerformanceChartProps) => {
+  // Use optimized performance data hook
+  const performanceData = usePortfolioPerformance(portfolio, timeframe);
+
+  if (performanceData.length === 0) {
+    return (
+      <EmptyState
+        title="No Performance Data"
+        message="Add transactions to see portfolio performance over time."
+        icon={() => <LineChart className="h-12 w-12" />}
+      />
     );
-
-    if (sortedTransactions.length === 0) {
-      return [];
-    }
-
-    // Calculate portfolio value at each transaction point
-    let runningInvested = 0;
-    let holdings = new Map<string, { quantity: number; avgPrice: number }>();
-
-    sortedTransactions.forEach((transaction, index) => {
-      const transactionDate = new Date(transaction.date);
-      
-      // Update holdings
-      const existing = holdings.get(transaction.symbol) || { quantity: 0, avgPrice: 0 };
-      
-      if (transaction.type === 'buy') {
-        const totalQuantity = existing.quantity + transaction.quantity;
-        const totalCost = (existing.quantity * existing.avgPrice) + (transaction.quantity * transaction.price);
-        const newAvgPrice = totalQuantity > 0 ? totalCost / totalQuantity : 0;
-        
-        holdings.set(transaction.symbol, {
-          quantity: totalQuantity,
-          avgPrice: newAvgPrice
-        });
-        runningInvested += transaction.totalAmount;
-      } else if (transaction.type === 'sell') {
-        const newQuantity = Math.max(0, existing.quantity - transaction.quantity);
-        holdings.set(transaction.symbol, {
-          quantity: newQuantity,
-          avgPrice: existing.avgPrice
-        });
-        runningInvested -= transaction.totalAmount;
-      }
-
-      // Calculate current portfolio value (using current prices for simplicity)
-      let portfolioValue = 0;
-      holdings.forEach((holding, symbol) => {
-        const currentHolding = portfolio.holdings.find(h => h.symbol === symbol);
-        const currentPrice = currentHolding?.currentPrice || holding.avgPrice;
-        portfolioValue += holding.quantity * currentPrice;
-      });
-
-      const returnValue = portfolioValue - runningInvested;
-      const returnPercent = runningInvested > 0 ? (returnValue / runningInvested) * 100 : 0;
-
-      data.push({
-        date: transactionDate.toISOString().split('T')[0],
-        portfolioValue,
-        invested: runningInvested,
-        return: returnValue,
-        returnPercent
-      });
-    });
-
-    // Add current data point
-    const currentInvested = calculateNetInvested(portfolio.transactions);
-    const currentReturn = portfolio.currentValue - currentInvested;
-    const currentReturnPercent = currentInvested > 0 ? (currentReturn / currentInvested) * 100 : 0;
-
-    data.push({
-      date: new Date().toISOString().split('T')[0],
-      portfolioValue: portfolio.currentValue,
-      invested: currentInvested,
-      return: currentReturn,
-      returnPercent: currentReturnPercent
-    });
-
-    // Filter data based on timeframe
-    const now = new Date();
-    let startDate = new Date();
-    
-    switch (timeframe) {
-      case '1M':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case '3M':
-        startDate.setMonth(now.getMonth() - 3);
-        break;
-      case '6M':
-        startDate.setMonth(now.getMonth() - 6);
-        break;
-      case '1Y':
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-      case 'ALL':
-        startDate = new Date(0); // Include all data
-        break;
-    }
-
-    return data.filter(point => new Date(point.date) >= startDate);
-  }, [portfolio, timeframe]);
+  }
 
   const formatCurrency = (value: number) => {
-    return `₹${(value / 1000).toFixed(0)}K`;
+    return formatters.compactCurrency(value);
   };
 
   const formatPercent = (value: number) => {
-    return `${value.toFixed(1)}%`;
+    return formatters.percentage(value, { maximumFractionDigits: 1 });
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -137,17 +57,17 @@ export function PerformanceChart({ portfolio, timeframe, onTimeframeChange }: Pe
             <p className="font-medium">{new Date(label).toLocaleDateString()}</p>
             <p className="text-sm">
               <span className="text-blue-600">Portfolio Value: </span>
-              ₹{data.portfolioValue.toLocaleString()}
+              {formatters.currency(data.portfolioValue)}
             </p>
             <p className="text-sm">
               <span className="text-gray-600">Invested: </span>
-              ₹{data.invested.toLocaleString()}
+              {formatters.currency(data.invested)}
             </p>
             <p className="text-sm">
-              <span className={data.return >= 0 ? 'text-green-600' : 'text-red-600'}>
+              <span className={ColorFormatter.getValueColorClass(data.return)}>
                 Return: 
               </span>
-              {' '}₹{data.return.toLocaleString()} ({data.returnPercent.toFixed(2)}%)
+              {' '}{formatters.compactCurrency(data.return, { showSign: true })} ({formatters.percentage(data.returnPercent)})
             </p>
           </CardContent>
         </Card>
@@ -221,7 +141,7 @@ export function PerformanceChart({ portfolio, timeframe, onTimeframeChange }: Pe
       <div className="h-64">
         <h4 className="text-sm font-medium mb-2">Return Percentage Over Time</h4>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={performanceData}>
+          <RechartsLineChart data={performanceData}>
             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
             <XAxis 
               dataKey="date" 
@@ -244,9 +164,19 @@ export function PerformanceChart({ portfolio, timeframe, onTimeframeChange }: Pe
               dot={{ fill: '#10b981', strokeWidth: 2, r: 3 }}
               activeDot={{ r: 5 }}
             />
-          </LineChart>
+          </RechartsLineChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const PerformanceChart = memo(PerformanceChartComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.portfolio.id === nextProps.portfolio.id &&
+    prevProps.portfolio.currentValue === nextProps.portfolio.currentValue &&
+    prevProps.portfolio.transactions.length === nextProps.portfolio.transactions.length &&
+    prevProps.timeframe === nextProps.timeframe
+  );
+});

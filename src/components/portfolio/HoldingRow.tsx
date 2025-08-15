@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/tooltip';
 import { MoreHorizontal, Info } from 'lucide-react';
 import { Holding } from '@/types';
+import { formatters, ColorFormatter } from '@/lib/utils/formatters';
+import { useHoldingCalculations } from '@/lib/hooks/usePortfolioCalculations';
 
 interface HoldingRowProps {
     holding: Holding;
@@ -26,66 +28,11 @@ interface HoldingRowProps {
     onSelect: (holdingId: string, checked: boolean) => void;
 }
 
-export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowProps) {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount);
-    };
+const HoldingRowComponent = ({ holding, index, isSelected, onSelect }: HoldingRowProps) => {
+    // Use optimized calculations hook
+    const calculations = useHoldingCalculations(holding);
 
-    const formatPrice = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(amount);
-    };
-
-    const formatNumber = (value: number) => {
-        return value.toLocaleString('en-IN');
-    };
-
-    const formatPercentage = (value: number) => {
-        // If the value is already in percentage format (> 1 or < -1), use it directly
-        // If it's in decimal format (between -1 and 1), multiply by 100
-        const percentValue = Math.abs(value) > 1 ? value : value * 100;
-        return `${percentValue >= 0 ? '+' : ''}${percentValue.toFixed(2)}%`;
-    };
-
-    const formatMarketCap = (marketCap: number) => {
-        if (marketCap >= 1e12) {
-            return `₹${(marketCap / 1e12).toFixed(2)}T`;
-        } else if (marketCap >= 1e9) {
-            return `₹${(marketCap / 1e9).toFixed(2)}B`;
-        } else if (marketCap >= 1e7) {
-            return `₹${(marketCap / 1e7).toFixed(2)}Cr`;
-        } else if (marketCap >= 1e5) {
-            return `₹${(marketCap / 1e5).toFixed(2)}L`;
-        }
-        return formatCurrency(marketCap);
-    };
-
-    const calculateInvestedAmount = (holding: Holding) => {
-        return holding.quantity * holding.averagePrice;
-    };
-
-    const calculateNetChange = (holding: Holding) => {
-        return holding.currentPrice - holding.averagePrice;
-    };
-
-    const calculateNetChangePercent = (holding: Holding) => {
-        if (holding.averagePrice === 0) return 0;
-        return ((holding.currentPrice - holding.averagePrice) / holding.averagePrice) * 100;
-    };
-
-    const investedAmount = calculateInvestedAmount(holding);
-    const netChange = calculateNetChange(holding);
-    const netChangePercent = calculateNetChangePercent(holding);
-    const isNetPositive = netChange >= 0;
+    const isNetPositive = calculations.netChange >= 0;
     const isDayPositive = (holding.priceChange || 0) >= 0;
 
     return (
@@ -119,10 +66,10 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <div className="space-y-1 text-xs">
-                                            <p><strong>Market Cap:</strong> {formatMarketCap(holding.marketCap)}</p>
-                                            {holding.trailingPE && <p><strong>P/E Ratio:</strong> {holding.trailingPE.toFixed(2)}</p>}
-                                            {holding.beta && <p><strong>Beta:</strong> {holding.beta.toFixed(2)}</p>}
-                                            {holding.dividendYield && <p><strong>Dividend Yield:</strong> {formatPercentage(holding.dividendYield)}</p>}
+                                            <p><strong>Market Cap:</strong> {formatters.marketCap(holding.marketCap)}</p>
+                                            {holding.trailingPE && <p><strong>P/E Ratio:</strong> {formatters.decimal(holding.trailingPE, 2)}</p>}
+                                            {holding.beta && <p><strong>Beta:</strong> {formatters.decimal(holding.beta, 2)}</p>}
+                                            {holding.dividendYield && <p><strong>Dividend Yield:</strong> {formatters.percentage(holding.dividendYield)}</p>}
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>
@@ -145,23 +92,23 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
 
                 {/* Quantity */}
                 <div className="p-3 text-right flex items-center justify-end">
-                    <span className="font-medium">{formatNumber(holding.quantity)}</span>
+                    <span className="font-medium">{formatters.integer(holding.quantity)}</span>
                 </div>
 
                 {/* Average Cost */}
                 <div className="p-3 text-right flex items-center justify-end">
-                    <span className="font-medium">{formatPrice(holding.averagePrice)}</span>
+                    <span className="font-medium">{formatters.price(holding.averagePrice)}</span>
                 </div>
 
                 {/* LTP (Last Traded Price) */}
                 <div className="p-3 text-right flex items-center justify-end">
                     <div className="flex flex-col items-end">
-                        <span className="font-medium">{formatPrice(holding.currentPrice)}</span>
+                        <span className="font-medium">{formatters.price(holding.currentPrice)}</span>
                         {holding.dayHigh && holding.dayLow && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <span className="text-xs text-muted-foreground cursor-help">
-                                        {formatPrice(holding.dayLow)} - {formatPrice(holding.dayHigh)}
+                                        {formatters.price(holding.dayLow)} - {formatters.price(holding.dayHigh)}
                                     </span>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -174,22 +121,22 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
 
                 {/* Invested Amount */}
                 <div className="p-3 text-right flex items-center justify-end">
-                    <span className="font-medium">{formatCurrency(investedAmount)}</span>
+                    <span className="font-medium">{formatters.currency(calculations.investedAmount)}</span>
                 </div>
 
                 {/* Current Value */}
                 <div className="p-3 text-right flex items-center justify-end">
-                    <span className="font-medium">{formatCurrency(holding.totalValue)}</span>
+                    <span className="font-medium">{formatters.currency(holding.totalValue)}</span>
                 </div>
 
                 {/* P&L (Profit & Loss) */}
                 <div className="p-3 text-right flex items-center justify-end">
                     <div className="flex flex-col items-end">
-                        <span className={`font-semibold ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
-                            {isNetPositive ? '+' : ''}{formatCurrency(holding.unrealizedGain)}
+                        <span className={`font-semibold ${ColorFormatter.getValueColorClass(holding.unrealizedGain)}`}>
+                            {formatters.compactCurrency(holding.unrealizedGain, { showSign: true })}
                         </span>
-                        <span className={`text-xs ${isNetPositive ? 'text-green-600' : 'text-red-600'}`}>
-                            ({formatPercentage(netChangePercent)})
+                        <span className={`text-xs ${ColorFormatter.getValueColorClass(calculations.unrealizedGainPercent)}`}>
+                            ({formatters.percentage(calculations.unrealizedGainPercent)})
                         </span>
                     </div>
                 </div>
@@ -197,8 +144,8 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
                 {/* Daily Gain */}
                 <div className="p-3 text-right flex items-center justify-end">
                     {holding.dayGainLoss !== undefined ? (
-                        <span className={`font-semibold ${(holding.dayGainLoss || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {(holding.dayGainLoss || 0) >= 0 ? '+' : ''}{formatCurrency(holding.dayGainLoss || 0)}
+                        <span className={`font-semibold ${ColorFormatter.getValueColorClass(holding.dayGainLoss)}`}>
+                            {formatters.compactCurrency(holding.dayGainLoss, { showSign: true })}
                         </span>
                     ) : (
                         <span className="text-muted-foreground text-sm">-</span>
@@ -209,24 +156,24 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
                 <div className="p-3 text-right flex items-center justify-end">
                     {holding.priceChange !== undefined && holding.priceChangePercent !== undefined ? (
                         <div className="flex flex-col items-end">
-                            <span className={`font-medium ${isDayPositive ? 'text-green-600' : 'text-red-600'}`}>
-                                {isDayPositive ? '+' : ''}{formatPrice(holding.priceChange)}
+                            <span className={`font-medium ${ColorFormatter.getValueColorClass(holding.priceChange)}`}>
+                                {holding.priceChange >= 0 ? '+' : ''}{formatters.price(Math.abs(holding.priceChange))}
                             </span>
-                            <span className={`text-xs ${isDayPositive ? 'text-green-600' : 'text-red-600'}`}>
-                                ({formatPercentage(holding.priceChangePercent)})
+                            <span className={`text-xs ${ColorFormatter.getValueColorClass(holding.priceChangePercent)}`}>
+                                ({formatters.percentage(holding.priceChangePercent)})
                             </span>
                             {holding.volume && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <span className="text-xs text-muted-foreground cursor-help">
-                                            Vol: {formatNumber(holding.volume)}
+                                            Vol: {formatters.compactNumber(holding.volume)}
                                         </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <div className="space-y-1 text-xs">
-                                            <p><strong>Volume:</strong> {formatNumber(holding.volume)}</p>
+                                            <p><strong>Volume:</strong> {formatters.integer(holding.volume)}</p>
                                             {holding.averageVolume && (
-                                                <p><strong>Avg Volume:</strong> {formatNumber(holding.averageVolume)}</p>
+                                                <p><strong>Avg Volume:</strong> {formatters.integer(holding.averageVolume)}</p>
                                             )}
                                         </div>
                                     </TooltipContent>
@@ -266,4 +213,20 @@ export function HoldingRow({ holding, index, isSelected, onSelect }: HoldingRowP
             </div>
         </TooltipProvider>
     );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const HoldingRow = memo(HoldingRowComponent, (prevProps, nextProps) => {
+    // Custom comparison function for better performance
+    return (
+        prevProps.holding.id === nextProps.holding.id &&
+        prevProps.holding.currentPrice === nextProps.holding.currentPrice &&
+        prevProps.holding.totalValue === nextProps.holding.totalValue &&
+        prevProps.holding.unrealizedGain === nextProps.holding.unrealizedGain &&
+        prevProps.holding.priceChange === nextProps.holding.priceChange &&
+        prevProps.holding.priceChangePercent === nextProps.holding.priceChangePercent &&
+        prevProps.holding.dayGainLoss === nextProps.holding.dayGainLoss &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.index === nextProps.index
+    );
+});

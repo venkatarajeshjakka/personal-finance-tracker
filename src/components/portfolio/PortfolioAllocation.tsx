@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -8,70 +8,19 @@ import { PieChart, BarChart3, TrendingUp } from 'lucide-react';
 import { Portfolio } from '@/types';
 import { getMarketCapCategory } from '@/lib/utils/quarterUtils';
 import { AllocationChart } from './analytics/AllocationChart';
+import { formatters, ColorFormatter } from '@/lib/utils/formatters';
+import { usePortfolioAllocation } from '@/lib/hooks/usePortfolioCalculations';
+import { EmptyState } from '@/components/ui/error-states';
 
 interface PortfolioAllocationProps {
   portfolio: Portfolio;
 }
 
-export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
-  };
-
-  const totalValue = portfolio.holdings.reduce((sum, holding) => sum + holding.totalValue, 0);
-
-  // Calculate allocation by holdings
-  const holdingAllocations = portfolio.holdings
-    .map(holding => ({
-      symbol: holding.symbol,
-      value: holding.totalValue,
-      percentage: totalValue > 0 ? (holding.totalValue / totalValue) * 100 : 0,
-      unrealizedGain: holding.unrealizedGain,
-      quantity: holding.quantity
-    }))
-    .sort((a, b) => b.percentage - a.percentage);
-
-  // Calculate sector allocation based on Yahoo Finance API data stored in holdings
-  const sectorMap = new Map<string, number>();
-  portfolio.holdings.forEach(holding => {
-    const sector = holding.sector || 'Unknown';
-    sectorMap.set(sector, (sectorMap.get(sector) || 0) + holding.totalValue);
-  });
-
-  const sectorAllocations = Array.from(sectorMap.entries())
-    .map(([sector, value]) => ({
-      sector,
-      value,
-      percentage: totalValue > 0 ? (value / totalValue) * 100 : 0
-    }))
-    .filter(item => item.percentage > 0)
-    .sort((a, b) => b.percentage - a.percentage);
-
-  // Calculate industry allocation based on Yahoo Finance API data stored in holdings
-  const industryMap = new Map<string, number>();
-  portfolio.holdings.forEach(holding => {
-    const industry = holding.industry || 'Unknown';
-    industryMap.set(industry, (industryMap.get(industry) || 0) + holding.totalValue);
-  });
-
-  const industryAllocations = Array.from(industryMap.entries())
-    .map(([industry, value]) => ({
-      industry,
-      value,
-      percentage: totalValue > 0 ? (value / totalValue) * 100 : 0
-    }))
-    .filter(item => item.percentage > 0)
-    .sort((a, b) => b.percentage - a.percentage);
+const PortfolioAllocationComponent = ({ portfolio }: PortfolioAllocationProps) => {
+  // Use optimized allocation calculations hook
+  const allocationData = usePortfolioAllocation(portfolio);
+  
+  const totalValue = portfolio.currentValue;
 
   // Calculate market cap allocation based on Yahoo Finance API data stored in holdings
   const marketCapMap = new Map<string, number>();
@@ -106,14 +55,11 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
 
   if (portfolio.holdings.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center text-muted-foreground">
-            <PieChart className="mx-auto h-12 w-12 mb-4" />
-            <p>No holdings to display allocation. Add transactions to see your portfolio composition.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <EmptyState
+        title="No Holdings Available"
+        message="Add transactions to see your portfolio composition and allocation breakdown."
+        icon={PieChart}
+      />
     );
   }
 
@@ -130,7 +76,7 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {holdingAllocations.length}
+              {allocationData.holdings.length}
             </div>
             <p className="text-xs text-blue-600 dark:text-blue-300">
               Total stocks
@@ -147,7 +93,7 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {sectorAllocations.length}
+              {allocationData.sectors.length}
             </div>
             <p className="text-xs text-green-600 dark:text-green-300">
               Different sectors
@@ -164,7 +110,7 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-              {industryAllocations.length}
+              {allocationData.industries.length}
             </div>
             <p className="text-xs text-purple-600 dark:text-purple-300">
               Different industries
@@ -203,9 +149,9 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {sectorAllocations.length > 0 ? (
+            {allocationData.sectors.length > 0 ? (
               <AllocationChart
-                data={sectorAllocations.map(sector => ({
+                data={allocationData.sectors.map(sector => ({
                   sector: sector.sector,
                   value: sector.value,
                   percentage: sector.percentage
@@ -232,9 +178,9 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {industryAllocations.length > 0 ? (
+            {allocationData.industries.length > 0 ? (
               <AllocationChart
-                data={industryAllocations.map(industry => ({
+                data={allocationData.industries.map(industry => ({
                   industry: industry.industry,
                   value: industry.value,
                   percentage: industry.percentage
@@ -293,7 +239,7 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
           </CardHeader>
           <CardContent>
             <AllocationChart
-              data={holdingAllocations.map(holding => ({
+              data={allocationData.holdings.map(holding => ({
                 name: holding.symbol,
                 value: holding.value,
                 percentage: holding.percentage
@@ -317,20 +263,20 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
           <CardContent>
 
             <div className="space-y-3 max-h-80 overflow-y-auto">
-              {holdingAllocations.map((holding, index) => (
+              {allocationData.holdings.map((holding, index) => (
                 <div key={holding.symbol} className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${getColorForIndex(index)}`}></div>
                     <div>
                       <div className="font-medium">{holding.symbol}</div>
-                      <div className="text-xs text-muted-foreground">{holding.quantity} shares</div>
+                      <div className="text-xs text-muted-foreground">{formatters.integer(holding.quantity)} shares</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{formatCurrency(holding.value)}</div>
-                    <div className="text-sm text-muted-foreground">{formatPercentage(holding.percentage)}</div>
-                    <div className={`text-xs ${holding.unrealizedGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(holding.unrealizedGain)}
+                    <div className="font-semibold">{formatters.currency(holding.value)}</div>
+                    <div className="text-sm text-muted-foreground">{formatters.percentage(holding.percentage, { maximumFractionDigits: 1 })}</div>
+                    <div className={`text-xs ${ColorFormatter.getValueColorClass(holding.unrealizedGain)}`}>
+                      {formatters.compactCurrency(holding.unrealizedGain, { showSign: true })}
                     </div>
                   </div>
                 </div>
@@ -353,15 +299,15 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
               <div>
                 <h4 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">Top Sectors</h4>
                 <div className="space-y-2">
-                  {sectorAllocations.slice(0, 3).map((sector, index) => (
+                  {allocationData.sectors.slice(0, 3).map((sector, index) => (
                     <div key={sector.sector} className="flex items-center justify-between p-2 rounded-lg bg-green-50 dark:bg-green-950/20">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-600" />
                         <span className="text-sm font-medium truncate max-w-24">{sector.sector}</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold">{sector.percentage.toFixed(1)}%</div>
-                        <div className="text-xs text-muted-foreground">{formatCurrency(sector.value)}</div>
+                        <div className="text-sm font-bold">{formatters.percentage(sector.percentage, { maximumFractionDigits: 1 })}</div>
+                        <div className="text-xs text-muted-foreground">{formatters.compactCurrency(sector.value)}</div>
                       </div>
                     </div>
                   ))}
@@ -372,15 +318,15 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
               <div>
                 <h4 className="font-medium text-sm text-purple-800 dark:text-purple-200 mb-2">Top Industries</h4>
                 <div className="space-y-2">
-                  {industryAllocations.slice(0, 3).map((industry, index) => (
+                  {allocationData.industries.slice(0, 3).map((industry, index) => (
                     <div key={industry.industry} className="flex items-center justify-between p-2 rounded-lg bg-purple-50 dark:bg-purple-950/20">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-purple-600" />
                         <span className="text-sm font-medium truncate max-w-24">{industry.industry}</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold">{industry.percentage.toFixed(1)}%</div>
-                        <div className="text-xs text-muted-foreground">{formatCurrency(industry.value)}</div>
+                        <div className="text-sm font-bold">{formatters.percentage(industry.percentage, { maximumFractionDigits: 1 })}</div>
+                        <div className="text-xs text-muted-foreground">{formatters.compactCurrency(industry.value)}</div>
                       </div>
                     </div>
                   ))}
@@ -398,8 +344,8 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
                         <span className="text-sm font-medium truncate max-w-24">{marketCap.category.split(' ')[0]} {marketCap.category.split(' ')[1]}</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold">{marketCap.percentage.toFixed(1)}%</div>
-                        <div className="text-xs text-muted-foreground">{formatCurrency(marketCap.value)}</div>
+                        <div className="text-sm font-bold">{formatters.percentage(marketCap.percentage, { maximumFractionDigits: 1 })}</div>
+                        <div className="text-xs text-muted-foreground">{formatters.compactCurrency(marketCap.value)}</div>
                       </div>
                     </div>
                   ))}
@@ -413,4 +359,25 @@ export function PortfolioAllocation({ portfolio }: PortfolioAllocationProps) {
 
     </div>
   );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const PortfolioAllocation = memo(PortfolioAllocationComponent, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.portfolio.id === nextProps.portfolio.id &&
+    prevProps.portfolio.currentValue === nextProps.portfolio.currentValue &&
+    prevProps.portfolio.holdings.length === nextProps.portfolio.holdings.length &&
+    JSON.stringify(prevProps.portfolio.holdings.map(h => ({ 
+      id: h.id, 
+      totalValue: h.totalValue, 
+      sector: h.sector, 
+      industry: h.industry 
+    }))) === JSON.stringify(nextProps.portfolio.holdings.map(h => ({ 
+      id: h.id, 
+      totalValue: h.totalValue, 
+      sector: h.sector, 
+      industry: h.industry 
+    })))
+  );
+});
