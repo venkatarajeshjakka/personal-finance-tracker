@@ -31,7 +31,12 @@ import {
   setTheme,
   addNotification,
   markNotificationAsRead,
-  clearNotifications
+  clearNotifications,
+  fetchHistoricalData,
+  fetchBatchHistoricalData,
+  clearHistoricalDataCache,
+  clearSymbolHistoricalDataCache,
+  clearExpiredHistoricalDataCache
 } from './slices';
 import {
   selectAllCompanies,
@@ -178,4 +183,29 @@ export const useUI = () => {
 export const useDashboard = () => {
   const dashboardData = useAppSelector(selectDashboardData);
   return dashboardData;
+};
+
+// Historical data hook
+export const useHistoricalData = () => {
+  const dispatch = useAppDispatch();
+  const cache = useAppSelector(state => state.historicalData.cache);
+  const loading = useAppSelector(state => state.historicalData.loading);
+  const errors = useAppSelector(state => state.historicalData.errors);
+
+  const actions = {
+    fetchHistoricalData: useCallback((params: { symbol: string; period?: string; interval?: string }) =>
+      dispatch(fetchHistoricalData(params)), [dispatch]),
+    fetchBatchHistoricalData: useCallback((params: { symbols: string[]; period?: string; interval?: string }) =>
+      dispatch(fetchBatchHistoricalData(params)), [dispatch]),
+    clearCache: useCallback(() => dispatch(clearHistoricalDataCache()), [dispatch]),
+    clearSymbolCache: useCallback((symbol: string) => dispatch(clearSymbolHistoricalDataCache(symbol)), [dispatch]),
+    clearExpiredCache: useCallback(() => dispatch(clearExpiredHistoricalDataCache()), [dispatch]),
+  };
+
+  return {
+    cache,
+    loading,
+    errors,
+    ...actions
+  };
 };

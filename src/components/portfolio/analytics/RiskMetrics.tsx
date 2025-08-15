@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Portfolio } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, Shield, TrendingUp, BarChart3, PieChart } from 'lucide-react';
-import { calculateNetInvested } from '@/types';
+
 import { RiskCalculationService } from '@/lib/utils/riskCalculations';
+import { useAppDispatch, useHistoricalData } from '@/lib/redux/hooks';
 
 interface RiskMetricsProps {
   portfolio: Portfolio;
@@ -32,33 +33,68 @@ interface RiskAnalysis {
   beta: number; // Portfolio beta (simplified)
 }
 
-export function RiskMetrics({ portfolio }: RiskMetricsProps) {
+export const RiskMetrics = React.memo(function RiskMetrics({ portfolio }: RiskMetricsProps) {
+  const dispatch = useAppDispatch();
+  const { cache: historicalDataCache, loading: historicalDataLoading, clearExpiredCache } = useHistoricalData();
+  
   const [portfolioVolatility, setPortfolioVolatility] = React.useState<number>(0);
   const [isCalculatingVolatility, setIsCalculatingVolatility] = React.useState<boolean>(true);
 
-  // Calculate volatility asynchronously
-  React.useEffect(() => {
+  // Clear expired cache on component mount
+  useEffect(() => {
+    clearExpiredCache();
+  }, [clearExpiredCache]);
+
+  // Memoize the portfolio holdings hash to prevent unnecessary recalculations
+  const portfolioHash = useMemo(() => {
+    return `${portfolio.id}-${portfolio.holdings.map(h => `${h.symbol}:${h.totalValue}`).join(',')}`;
+  }, [portfolio.id, portfolio.holdings]);
+
+  // Calculate volatility using Redux-cached data
+  useEffect(() => {
+    let isCancelled = false;
+
     const calculateVolatility = async () => {
       setIsCalculatingVolatility(true);
+      
       try {
-        const volatility = await RiskCalculationService.calculatePortfolioVolatility(portfolio);
-        setPortfolioVolatility(volatility);
+        const volatility = await RiskCalculationService.calculatePortfolioVolatilityWithRedux(
+          portfolio, 
+          dispatch, 
+          historicalDataCache
+        );
+        
+        if (!isCancelled) {
+          setPortfolioVolatility(volatility);
+        }
       } catch (error) {
         console.error('Error calculating volatility:', error);
-        // Fallback to simple calculation
-        const fallbackVolatility = RiskCalculationService.calculateSimplePortfolioVolatility(portfolio);
-        setPortfolioVolatility(fallbackVolatility);
+        if (!isCancelled) {
+          // Fallback to simple calculation
+          const fallbackVolatility = RiskCalculationService.calculateSimplePortfolioVolatility(portfolio);
+          setPortfolioVolatility(fallbackVolatility);
+        }
       } finally {
-        setIsCalculatingVolatility(false);
+        if (!isCancelled) {
+          setIsCalculatingVolatility(false);
+        }
       }
     };
 
     calculateVolatility();
-  }, [portfolio]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [portfolioHash, dispatch]); // Only recalculate when portfolio composition actually changes
+
+  // Check if any historical data is still loading
+  const isAnyDataLoading = useMemo(() => {
+    return Object.values(historicalDataLoading).some(loading => loading);
+  }, [historicalDataLoading]);
 
   const riskAnalysis = useMemo((): RiskAnalysis => {
     const totalValue = portfolio.currentValue;
-    const netInvested = calculateNetInvested(portfolio.transactions);
 
     // Calculate concentration risk
     const holdingPercentages = portfolio.holdings.map(holding => ({
@@ -220,7 +256,7 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Volatility</CardTitle>
             <div className="flex items-center gap-2">
-              {isCalculatingVolatility && (
+              {(isCalculatingVolatility || isAnyDataLoading) && (
                 <div className="animate-spin h-3 w-3 border border-muted-foreground border-t-transparent rounded-full" />
               )}
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -228,13 +264,13 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isCalculatingVolatility ? '...' : `${riskAnalysis.portfolioVolatility.toFixed(1)}%`}
+              {(isCalculatingVolatility || isAnyDataLoading) ? '...' : `${riskAnalysis.portfolioVolatility.toFixed(1)}%`}
             </div>
             <p className="text-xs text-muted-foreground">
-              {isCalculatingVolatility ? 'Calculating from Yahoo Finance...' :
-                riskAnalysis.portfolioVolatility < 10 ? 'Low volatility (from historical data)' :
-                  riskAnalysis.portfolioVolatility < 20 ? 'Moderate volatility (from historical data)' :
-                    riskAnalysis.portfolioVolatility < 30 ? 'High volatility (from historical data)' : 'Very high volatility (from historical data)'}
+              {(isCalculatingVolatility || isAnyDataLoading) ? 'Loading from cached/live data...' :
+                riskAnalysis.portfolioVolatility < 10 ? 'Low volatility (cached historical data)' :
+                  riskAnalysis.portfolioVolatility < 20 ? 'Moderate volatility (cached historical data)' :
+                    riskAnalysis.portfolioVolatility < 30 ? 'High volatility (cached historical data)' : 'Very high volatility (cached historical data)'}
             </p>
           </CardContent>
         </Card>
@@ -424,4 +460,4 @@ export function RiskMetrics({ portfolio }: RiskMetricsProps) {
       </div>
     </div>
   );
-}
+});

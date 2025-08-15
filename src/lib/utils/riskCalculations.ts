@@ -1,4 +1,6 @@
 import { Portfolio, Holding, calculateNetInvested } from '@/types';
+import type { AppDispatch } from '@/lib/redux/store';
+import { fetchBatchHistoricalData } from '@/lib/redux/slices/historicalDataSlice';
 
 export interface VolatilityData {
   weight: number;
@@ -24,7 +26,117 @@ export interface BetaDataQuality {
 export class RiskCalculationService {
   
   /**
-   * Calculate portfolio volatility using Yahoo Finance historical data
+   * Calculate portfolio volatility using Redux-cached historical data with batch fetching
+   */
+  static async calculatePortfolioVolatilityWithRedux(
+    portfolio: Portfolio, 
+    dispatch: AppDispatch, 
+    historicalDataCache: Record<string, any>
+  ): Promise<number> {
+    if (portfolio.holdings.length === 0) return 0;
+
+    try {
+      const totalValue = portfolio.currentValue;
+      const volatilityData: VolatilityData[] = [];
+      const maxAge = 5 * 60 * 1000; // 5 minutes cache expiry
+      const now = Date.now();
+
+      // Separate symbols into cached and uncached
+      const cachedSymbols: string[] = [];
+      const uncachedSymbols: string[] = [];
+      
+      portfolio.holdings.forEach(holding => {
+        const symbol = holding.symbol;
+        const cachedData = historicalDataCache[symbol];
+        const isCacheValid = cachedData && (now - cachedData.lastUpdated) < maxAge;
+        
+        if (isCacheValid) {
+          cachedSymbols.push(symbol);
+        } else {
+          uncachedSymbols.push(symbol);
+        }
+      });
+
+      // Batch fetch uncached symbols if any
+      let batchResults: any = null;
+      if (uncachedSymbols.length > 0) {
+        try {
+          batchResults = await dispatch(fetchBatchHistoricalData({ 
+            symbols: uncachedSymbols, 
+            period: '1y', 
+            interval: '1d' 
+          })).unwrap();
+        } catch (error) {
+          console.warn('Batch fetch failed, some symbols may use fallback volatility:', error);
+        }
+      }
+
+      // Process all holdings - use fresh data from batch results or existing cache
+      portfolio.holdings.forEach(holding => {
+        const weight = holding.totalValue / totalValue;
+        const symbol = holding.symbol;
+        
+        // Check if we have fresh data from batch fetch
+        let volatility: number | undefined;
+        if (batchResults && batchResults.results) {
+          const freshData = batchResults.results.find((result: any) => result.symbol === symbol);
+          if (freshData && freshData.volatility !== undefined) {
+            volatility = freshData.volatility;
+          }
+        }
+        
+        // If no fresh data, check existing cache
+        if (volatility === undefined) {
+          const cachedData = historicalDataCache[symbol];
+          if (cachedData && cachedData.volatility !== undefined) {
+            volatility = cachedData.volatility;
+          }
+        }
+        
+        // Use calculated volatility or fallback
+        if (volatility !== undefined) {
+          volatilityData.push({
+            weight,
+            volatility,
+            symbol: holding.symbol
+          });
+        } else {
+          // Fallback to estimated volatility
+          const estimatedVolatility = this.estimateVolatilityFromCurrentReturn(holding);
+          volatilityData.push({
+            weight,
+            volatility: estimatedVolatility,
+            symbol: holding.symbol
+          });
+        }
+      });
+
+      if (volatilityData.length === 0) return 0;
+
+      // Calculate portfolio volatility using weighted individual volatilities
+      const weightedVolatility = volatilityData.reduce((sum, item) => {
+        return sum + (item.weight * item.weight * item.volatility * item.volatility);
+      }, 0);
+
+      // Apply diversification benefit (simplified correlation assumption)
+      const avgCorrelation = 0.3; // Typical stock correlation
+      const diversificationFactor = Math.sqrt(
+        weightedVolatility + 
+        (avgCorrelation * (1 - weightedVolatility))
+      );
+
+      return Math.max(0, diversificationFactor);
+
+    } catch (error) {
+      console.error('Error calculating portfolio volatility:', error);
+      // Fallback to simple calculation
+      return this.calculateSimplePortfolioVolatility(portfolio);
+    }
+  }
+
+  /**
+   * Calculate portfolio volatility using Yahoo Finance historical data (legacy method)
+   * @deprecated Use calculatePortfolioVolatilityWithRedux instead
    */
   static async calculatePortfolioVolatility(portfolio: Portfolio): Promise<number> {
     if (portfolio.holdings.length === 0) return 0;

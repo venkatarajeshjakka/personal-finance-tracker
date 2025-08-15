@@ -6,6 +6,7 @@ export { default as nseCompaniesReducer } from './nseCompaniesSlice';
 export { default as filtersReducer } from './filtersSlice';
 export { default as uiReducer } from './uiSlice';
 export { default as settingsReducer } from './settingsSlice';
+export { default as historicalDataReducer } from './historicalDataSlice';
 
 // Export actions with prefixes to avoid naming conflicts
 export {
@@ -97,3 +98,12 @@ export {
   updatePriceUpdateSettings,
   clearError as clearSettingsError
 } from './settingsSlice';
+
+export {
+  fetchHistoricalData,
+  fetchBatchHistoricalData,
+  clearCache as clearHistoricalDataCache,
+  clearSymbolCache as clearSymbolHistoricalDataCache,
+  clearExpiredCache as clearExpiredHistoricalDataCache,
+  clearOngoingRequests as clearOngoingHistoricalDataRequests
+} from './historicalDataSlice';

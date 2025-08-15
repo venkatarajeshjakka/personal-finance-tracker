@@ -10,7 +10,8 @@ import {
   nseCompaniesReducer,
   filtersReducer,
   uiReducer,
-  settingsReducer
+  settingsReducer,
+  historicalDataReducer
 } from './slices';
 import aiAnalysisReducer from './slices/aiAnalysisSlice';
 
@@ -34,6 +35,7 @@ export const store = configureStore({
     filters: filtersReducer,
     ui: uiReducer,
     settings: settingsReducer,
+    historicalData: historicalDataReducer,
     aiAnalysis: aiAnalysisReducer,
     [financeApi.reducerPath]: financeApi.reducer,
   },

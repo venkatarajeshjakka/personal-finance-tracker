@@ -181,6 +181,7 @@ export interface RootState {
   filters: FiltersState;
   ui: UIState;
   settings: SettingsState;
+  historicalData: import('@/lib/redux/slices/historicalDataSlice').HistoricalDataState;
   aiAnalysis: import('@/types/gemini').AIAnalysisState;
 }
 
